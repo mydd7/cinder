@@ -42,7 +42,9 @@
   "build": {
     "appId": "app.local.ausage",
     "productName": "A Usage",
+    "directories": { "output": "release" },
     "files": ["main.js", "preload.js", "main/**/*", "pricing-data.json", "dist/**/*", "package.json"],
+    "asarUnpack": ["main/sqlite-reader.js"],
     "win": { "target": "nsis" },
     "linux": { "target": "AppImage" },
     "mac": { "target": "dmg" }

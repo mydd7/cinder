@@ -2,10 +2,11 @@ const { execFileSync } = require("child_process");
 const path = require("path");
 
 const READER = path.join(__dirname, "sqlite-reader.js");
+const UNPACKED = READER.replace(`app.asar${path.sep}`, `app.asar.unpacked${path.sep}`);
 
-function run(cmd, dbPath, sql, extraEnv) {
+function run(cmd, reader, dbPath, sql, extraEnv) {
   try {
-    const raw = execFileSync(cmd, [READER, dbPath, sql], {
+    const raw = execFileSync(cmd, [reader, dbPath, sql], {
       env: { ...process.env, ...extraEnv },
       maxBuffer: 512 * 1024 * 1024,
       timeout: 120000,
@@ -19,9 +20,9 @@ function run(cmd, dbPath, sql, extraEnv) {
 }
 
 function queryAll(dbPath, sql) {
-  const viaElectronNode = run(process.execPath, dbPath, sql, { ELECTRON_RUN_AS_NODE: "1" });
+  const viaElectronNode = run(process.execPath, READER, dbPath, sql, { ELECTRON_RUN_AS_NODE: "1" });
   if (viaElectronNode) return viaElectronNode;
-  return run("node", dbPath, sql, {});
+  return run("node", UNPACKED, dbPath, sql, {});
 }
 
 module.exports = { queryAll, available: () => true };
