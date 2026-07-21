@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>A\ Usage</title>
+    <script>
+      (function () {
+        try {
+          var mode = localStorage.getItem("au-mode") === "light" ? "light" : "dark";
+          var bg = localStorage.getItem("au-bg") || (mode === "light" ? "#faf9f5" : "#1f1e1d");
+          var d = document.documentElement;
+          d.classList.add(mode);
+          d.style.backgroundColor = bg;
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
