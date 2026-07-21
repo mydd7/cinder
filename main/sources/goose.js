@@ -27,33 +27,31 @@ function modelName(json) {
   }
 }
 
-function collect(cx) {
+async function collect(cx) {
   for (const db of dbs()) {
-    const rows = queryAll(db, QUERY);
-    if (!rows) continue;
-    let hits = 0;
-    for (const r of rows) {
-      const input = num(r.accumulated_input_tokens) || num(r.input_tokens);
-      const output = num(r.accumulated_output_tokens) || num(r.output_tokens);
-      const total = num(r.accumulated_total_tokens) || num(r.total_tokens) || input + output;
-      const reasoning = Math.max(0, total - input - output);
-      const model = modelName(r.model_config_json);
-      const ok = cx.add({
-        source: "goose",
-        ts: r.created_at,
-        model,
-        provider: r.provider_name || "goose",
-        session: String(r.id),
-        input,
-        output,
-        cacheWrite: 0,
-        cacheRead: 0,
-        reasoning,
-        dedup: String(r.id)
-      });
-      if (ok) hits++;
-    }
-    if (hits > 0) cx.file("goose", path.dirname(db));
+    await cx.scanFile("goose", path.dirname(db), db, async (out) => {
+      const rows = queryAll(db, QUERY);
+      if (!rows) throw new Error("sqlite unavailable");
+      for (const r of rows) {
+        const input = num(r.accumulated_input_tokens) || num(r.input_tokens);
+        const output = num(r.accumulated_output_tokens) || num(r.output_tokens);
+        const total = num(r.accumulated_total_tokens) || num(r.total_tokens) || input + output;
+        const reasoning = Math.max(0, total - input - output);
+        out.add({
+          source: "goose",
+          ts: r.created_at,
+          model: modelName(r.model_config_json),
+          provider: r.provider_name || "goose",
+          session: String(r.id),
+          input,
+          output,
+          cacheWrite: 0,
+          cacheRead: 0,
+          reasoning,
+          dedup: String(r.id)
+        });
+      }
+    });
   }
 }
 

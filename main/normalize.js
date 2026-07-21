@@ -1,7 +1,7 @@
 const fs = require("fs");
+const fsp = require("fs/promises");
 const path = require("path");
 const os = require("os");
-const readline = require("readline");
 const { costParts } = require("./pricing");
 
 const HOME = os.homedir();
@@ -30,31 +30,49 @@ function walk(dir, ext, hit) {
   }
 }
 
-function readJsonl(file, onObj) {
-  return new Promise((resolve) => {
-    let stream;
-    try {
-      stream = fs.createReadStream(file);
-    } catch {
-      resolve();
-      return;
-    }
-    const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
-    rl.on("line", (line) => {
-      if (!line) return;
+async function readJsonl(file, onObj) {
+  let raw;
+  try {
+    raw = await fsp.readFile(file, "utf8");
+  } catch {
+    return;
+  }
+  let start = 0;
+  const len = raw.length;
+  while (start < len) {
+    let nl = raw.indexOf("\n", start);
+    if (nl === -1) nl = len;
+    let end = nl;
+    if (end > start && raw.charCodeAt(end - 1) === 13) end--;
+    if (end > start) {
+      const line = raw.slice(start, end);
       let o;
       try {
         o = JSON.parse(line);
       } catch {
-        return;
+        o = undefined;
       }
-      try {
-        onObj(o);
-      } catch {}
-    });
-    rl.on("close", resolve);
-    rl.on("error", resolve);
+      if (o !== undefined) {
+        try {
+          onObj(o);
+        } catch {}
+      }
+    }
+    start = nl + 1;
+  }
+}
+
+async function mapLimit(items, limit, fn) {
+  const n = items.length;
+  if (n === 0) return;
+  let i = 0;
+  const workers = new Array(Math.min(limit, n)).fill(0).map(async () => {
+    while (i < n) {
+      const idx = i++;
+      await fn(items[idx], idx);
+    }
   });
+  await Promise.all(workers);
 }
 
 function toIso(v) {
@@ -80,6 +98,51 @@ class Collector {
     this.seen = new Set();
     this.sources = new Map();
     this.home = HOME;
+    this.cacheIn = {};
+    this.cacheOut = {};
+    this.cachePath = null;
+  }
+
+  loadCache(dir) {
+    if (!dir) return;
+    this.cachePath = path.join(dir, "scan-cache.json");
+    try {
+      const raw = JSON.parse(fs.readFileSync(this.cachePath, "utf8"));
+      if (raw && raw.v === 2 && raw.files) this.cacheIn = raw.files;
+    } catch {}
+  }
+
+  saveCache() {
+    if (!this.cachePath) return;
+    try {
+      fs.writeFileSync(this.cachePath, JSON.stringify({ v: 2, files: this.cacheOut }));
+    } catch {}
+  }
+
+  async scanFile(source, dir, key, parseFn) {
+    let st;
+    try {
+      st = fs.statSync(key);
+    } catch {
+      return;
+    }
+    const sig = st.mtimeMs + ":" + st.size;
+    const cached = this.cacheIn[key];
+    let raws;
+    if (cached && cached.sig === sig) {
+      raws = cached.e;
+    } else {
+      raws = [];
+      try {
+        await parseFn({ add: (e) => raws.push(e) });
+      } catch {
+        return;
+      }
+    }
+    this.cacheOut[key] = { sig, e: raws };
+    let added = false;
+    for (const e of raws) if (this.add(e)) added = true;
+    if (added) this.file(source, dir);
   }
 
   stat(source) {
@@ -146,4 +209,4 @@ class Collector {
   }
 }
 
-module.exports = { num, walk, readJsonl, toIso, envDirs, Collector, HOME };
+module.exports = { num, walk, readJsonl, mapLimit, toIso, envDirs, Collector, HOME };

@@ -20,13 +20,15 @@ const SOURCES = [
 
 const CATALOG = SOURCES.map((s) => ({ id: s.id, label: s.label }));
 
-async function collect() {
+async function collect(cacheDir) {
   const cx = new Collector();
+  cx.loadCache(cacheDir);
   for (const source of SOURCES) {
     try {
       await source.collect(cx);
     } catch {}
   }
+  cx.saveCache();
   const res = cx.result();
   res.catalog = CATALOG;
   return res;

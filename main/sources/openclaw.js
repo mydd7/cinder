@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { num, walk, readJsonl, envDirs, HOME } = require("../normalize");
+const { num, walk, readJsonl, mapLimit, envDirs, HOME } = require("../normalize");
 
 function dirs() {
   const env = envDirs("OPENCLAW_DIR");
@@ -32,30 +32,29 @@ async function collect(cx) {
   for (const dir of dirs()) {
     const files = [];
     walk(dir, ".jsonl", (f) => files.push(f));
-    for (const file of files) {
-      let current = null;
-      let hits = 0;
-      await readJsonl(file, (o) => {
-        const m = modelOf(o);
-        if (m) current = m;
-        const u = usageOf(o);
-        if (!u) return;
-        const ok = cx.add({
-          source: "openclaw",
-          ts: u.ts,
-          model: u.model || current || "openclaw",
-          provider: "openclaw",
-          session: path.basename(file, ".jsonl"),
-          input: u.input,
-          output: u.output,
-          cacheWrite: u.cacheWrite,
-          cacheRead: u.cacheRead,
-          dedup: u.id != null ? String(u.id) : undefined
+    await mapLimit(files, 16, (file) =>
+      cx.scanFile("openclaw", dir, file, async (out) => {
+        let current = null;
+        await readJsonl(file, (o) => {
+          const m = modelOf(o);
+          if (m) current = m;
+          const u = usageOf(o);
+          if (!u) return;
+          out.add({
+            source: "openclaw",
+            ts: u.ts,
+            model: u.model || current || "openclaw",
+            provider: "openclaw",
+            session: path.basename(file, ".jsonl"),
+            input: u.input,
+            output: u.output,
+            cacheWrite: u.cacheWrite,
+            cacheRead: u.cacheRead,
+            dedup: u.id != null ? String(u.id) : undefined
+          });
         });
-        if (ok) hits++;
-      });
-      if (hits > 0) cx.file("openclaw", dir);
-    }
+      })
+    );
   }
 }
 

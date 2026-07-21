@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { num, walk, readJsonl, envDirs, HOME } = require("../normalize");
+const { num, walk, readJsonl, mapLimit, envDirs, HOME } = require("../normalize");
 
 function homes() {
   const env = envDirs("CODEX_HOME");
@@ -19,12 +19,11 @@ function dirs() {
   return [...new Set(out)];
 }
 
-async function readFile(file, cx) {
+async function readFile(file, out) {
   let model = "gpt-5";
   let cwd = null;
   const prev = { input: 0, output: 0, cacheRead: 0 };
   let started = false;
-  let added = false;
   await readJsonl(file, (o) => {
     const p = o.payload;
     if (!p) return;
@@ -51,7 +50,7 @@ async function readFile(file, cx) {
       prev.cacheRead = totCr;
       started = true;
       if (dIn + dOut + dCr <= 0) return;
-      const ok = cx.add({
+      out.add({
         source: "codex",
         ts: o.timestamp,
         model,
@@ -63,17 +62,15 @@ async function readFile(file, cx) {
         cacheWrite: 0,
         cacheRead: Math.max(0, dCr)
       });
-      if (ok) added = true;
     }
   });
-  return added;
 }
 
 async function collect(cx) {
   for (const dir of dirs()) {
     const files = [];
     walk(dir, ".jsonl", (f) => files.push(f));
-    for (const file of files) if (await readFile(file, cx)) cx.file("codex", dir);
+    await mapLimit(files, 16, (file) => cx.scanFile("codex", dir, file, (out) => readFile(file, out)));
   }
 }
 

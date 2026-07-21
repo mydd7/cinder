@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { num, walk, readJsonl, envDirs, HOME } = require("../normalize");
+const { num, walk, readJsonl, mapLimit, envDirs, HOME } = require("../normalize");
 
 function dirs() {
   const env = envDirs("KIMI_DATA_DIR");
@@ -31,27 +31,26 @@ function usageFrom(o) {
 async function collect(cx) {
   for (const root of dirs()) {
     const files = wireFiles(root);
-    for (const file of files) {
-      let hits = 0;
-      await readJsonl(file, (o) => {
-        const u = usageFrom(o);
-        if (!u) return;
-        const ok = cx.add({
-          source: "kimi",
-          ts: o.timestamp != null ? o.timestamp : fs.statSync(file).mtime,
-          model: o.model || "kimi-for-coding",
-          provider: "moonshotai",
-          session: path.basename(path.dirname(file)),
-          input: u.input,
-          output: u.output,
-          cacheWrite: u.cacheWrite,
-          cacheRead: u.cacheRead,
-          dedup: u.id != null ? String(u.id) : undefined
+    await mapLimit(files, 16, (file) =>
+      cx.scanFile("kimi", root, file, async (out) => {
+        await readJsonl(file, (o) => {
+          const u = usageFrom(o);
+          if (!u) return;
+          out.add({
+            source: "kimi",
+            ts: o.timestamp != null ? o.timestamp : fs.statSync(file).mtime,
+            model: o.model || "kimi-for-coding",
+            provider: "moonshotai",
+            session: path.basename(path.dirname(file)),
+            input: u.input,
+            output: u.output,
+            cacheWrite: u.cacheWrite,
+            cacheRead: u.cacheRead,
+            dedup: u.id != null ? String(u.id) : undefined
+          });
         });
-        if (ok) hits++;
-      });
-      if (hits > 0) cx.file("kimi", root);
-    }
+      })
+    );
   }
 }
 

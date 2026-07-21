@@ -1,6 +1,7 @@
+const fsp = require("fs/promises");
 const fs = require("fs");
 const path = require("path");
-const { num, walk, envDirs, HOME } = require("../normalize");
+const { num, walk, mapLimit, envDirs, HOME } = require("../normalize");
 
 function dirs() {
   const env = envDirs("AMP_DATA_DIR");
@@ -18,16 +19,15 @@ function cacheByMessage(messages) {
   return map;
 }
 
-function fromThread(thread, threadId, cx) {
+function fromThread(thread, threadId, out) {
   const messages = thread.messages || [];
   const ledger = thread.usage_ledger && thread.usage_ledger.events;
-  let hits = 0;
   if (Array.isArray(ledger)) {
     const cache = cacheByMessage(messages);
     for (const ev of ledger) {
       if (!ev.timestamp || !ev.model || !ev.tokens) continue;
       const c = cache.get(String(ev.to_message_id || ev.toMessageId)) || { cw: 0, cr: 0 };
-      const ok = cx.add({
+      out.add({
         source: "amp",
         ts: ev.timestamp,
         model: ev.model,
@@ -39,14 +39,13 @@ function fromThread(thread, threadId, cx) {
         cacheRead: c.cr,
         dedup: ev.id != null ? String(ev.id) : undefined
       });
-      if (ok) hits++;
     }
-    return hits;
+    return;
   }
   for (const m of messages) {
     if (!m.usage) continue;
     const u = m.usage;
-    const ok = cx.add({
+    out.add({
       source: "amp",
       ts: m.timestamp,
       model: m.model || "amp",
@@ -58,27 +57,25 @@ function fromThread(thread, threadId, cx) {
       cacheRead: num(u.cacheReadInputTokens),
       dedup: (m.message_id || m.messageId || m.id) != null ? String(m.message_id || m.messageId || m.id) : undefined
     });
-    if (ok) hits++;
   }
-  return hits;
 }
 
-function collect(cx) {
+async function collect(cx) {
   for (const dir of dirs()) {
     const files = [];
     walk(dir, ".json", (f) => files.push(f));
-    let hits = 0;
-    for (const file of files) {
-      let thread;
-      try {
-        thread = JSON.parse(fs.readFileSync(file, "utf8"));
-      } catch {
-        continue;
-      }
-      if (!thread || !thread.id || !Array.isArray(thread.messages)) continue;
-      hits += fromThread(thread, String(thread.id), cx);
-    }
-    if (hits > 0) cx.file("amp", dir);
+    await mapLimit(files, 16, (file) =>
+      cx.scanFile("amp", dir, file, async (out) => {
+        let thread;
+        try {
+          thread = JSON.parse(await fsp.readFile(file, "utf8"));
+        } catch {
+          return;
+        }
+        if (!thread || !thread.id || !Array.isArray(thread.messages)) return;
+        fromThread(thread, String(thread.id), out);
+      })
+    );
   }
 }
 

@@ -46,7 +46,7 @@ ipcMain.handle("window:is-maximized", () => (win ? win.isMaximized() : false));
 
 ipcMain.handle("usage:collect", async () => {
   try {
-    return await collect();
+    return await collect(app.getPath("userData"));
   } catch (err) {
     return { entries: [], sources: [], error: String(err && err.message ? err.message : err) };
   }

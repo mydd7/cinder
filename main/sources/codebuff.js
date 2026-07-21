@@ -1,6 +1,7 @@
 const fs = require("fs");
+const fsp = require("fs/promises");
 const path = require("path");
-const { num, walk, HOME } = require("../normalize");
+const { num, walk, mapLimit, HOME } = require("../normalize");
 
 const CHANNELS = ["manicode", "manicode-dev", "manicode-staging"];
 
@@ -32,43 +33,42 @@ function usageOf(m) {
   return { input, output, cacheWrite, cacheRead, model: meta && meta.model };
 }
 
-function collect(cx) {
-  for (const file of files()) {
-    let arr;
-    try {
-      arr = JSON.parse(fs.readFileSync(file, "utf8"));
-    } catch {
-      continue;
-    }
-    const messages = Array.isArray(arr) ? arr : Array.isArray(arr.messages) ? arr.messages : [];
-    let mtime;
-    try {
-      mtime = fs.statSync(file).mtime;
-    } catch {
-      mtime = null;
-    }
-    const session = path.basename(path.dirname(file));
-    let hits = 0;
-    for (const m of messages) {
-      const u = usageOf(m);
-      if (!u) continue;
-      const ok = cx.add({
-        source: "codebuff",
-        ts: m.timestamp || m.createdAt || m.created_at || mtime,
-        model: u.model || "codebuff",
-        provider: "codebuff",
-        project: session,
-        session,
-        input: u.input,
-        output: u.output,
-        cacheWrite: u.cacheWrite,
-        cacheRead: u.cacheRead,
-        dedup: m.id != null ? String(m.id) : undefined
-      });
-      if (ok) hits++;
-    }
-    if (hits > 0) cx.file("codebuff", path.dirname(file));
-  }
+async function collect(cx) {
+  await mapLimit(files(), 16, (file) =>
+    cx.scanFile("codebuff", path.dirname(file), file, async (out) => {
+      let arr;
+      try {
+        arr = JSON.parse(await fsp.readFile(file, "utf8"));
+      } catch {
+        return;
+      }
+      const messages = Array.isArray(arr) ? arr : Array.isArray(arr.messages) ? arr.messages : [];
+      let mtime;
+      try {
+        mtime = fs.statSync(file).mtime;
+      } catch {
+        mtime = null;
+      }
+      const session = path.basename(path.dirname(file));
+      for (const m of messages) {
+        const u = usageOf(m);
+        if (!u) continue;
+        out.add({
+          source: "codebuff",
+          ts: m.timestamp || m.createdAt || m.created_at || mtime,
+          model: u.model || "codebuff",
+          provider: "codebuff",
+          project: session,
+          session,
+          input: u.input,
+          output: u.output,
+          cacheWrite: u.cacheWrite,
+          cacheRead: u.cacheRead,
+          dedup: m.id != null ? String(m.id) : undefined
+        });
+      }
+    })
+  );
 }
 
 module.exports = { id: "codebuff", label: "Codebuff", collect };

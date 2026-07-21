@@ -1,6 +1,7 @@
 const fs = require("fs");
+const fsp = require("fs/promises");
 const path = require("path");
-const { num, walk, envDirs, HOME } = require("../normalize");
+const { num, walk, mapLimit, envDirs, HOME } = require("../normalize");
 
 function dirs() {
   const env = envDirs("GEMINI_DATA_DIR");
@@ -30,11 +31,11 @@ function tokensFrom(obj) {
   };
 }
 
-function record(o, file, cx) {
+function record(o, file, out) {
   const stats = o.tokens || o.stats || (o.result && o.result.stats) || o.usageMetadata;
   const t = tokensFrom(stats);
-  if (!t) return false;
-  return cx.add({
+  if (!t) return;
+  out.add({
     source: "gemini",
     ts: o.timestamp || o.created_at || o.lastUpdated || o.last_updated || o.startTime || o.start_time || fs.statSync(file).mtime,
     model: o.model || "gemini",
@@ -49,33 +50,33 @@ function record(o, file, cx) {
   });
 }
 
-function collect(cx) {
+async function collect(cx) {
   for (const dir of dirs()) {
     const files = [];
     walk(dir, ".json", (f) => files.push(f));
     walk(dir, ".jsonl", (f) => files.push(f));
-    for (const file of files) {
-      let raw;
-      try {
-        raw = fs.readFileSync(file, "utf8");
-      } catch {
-        continue;
-      }
-      let hits = 0;
-      if (file.endsWith(".jsonl")) {
-        for (const line of raw.split(/\r?\n/)) {
-          if (!line.trim()) continue;
+    await mapLimit(files, 16, (file) =>
+      cx.scanFile("gemini", dir, file, async (out) => {
+        let raw;
+        try {
+          raw = await fsp.readFile(file, "utf8");
+        } catch {
+          return;
+        }
+        if (file.endsWith(".jsonl")) {
+          for (const line of raw.split(/\r?\n/)) {
+            if (!line.trim()) continue;
+            try {
+              record(JSON.parse(line), file, out);
+            } catch {}
+          }
+        } else {
           try {
-            if (record(JSON.parse(line), file, cx)) hits++;
+            record(JSON.parse(raw), file, out);
           } catch {}
         }
-      } else {
-        try {
-          if (record(JSON.parse(raw), file, cx)) hits++;
-        } catch {}
-      }
-      if (hits > 0) cx.file("gemini", dir);
-    }
+      })
+    );
   }
 }
 

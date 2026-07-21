@@ -15,22 +15,22 @@ function dbs() {
   return out;
 }
 
-function collect(cx) {
+async function collect(cx) {
   for (const db of dbs()) {
-    const rows = queryAll(db, "SELECT id, session_id, data FROM message");
-    if (!rows) continue;
-    let hits = 0;
-    for (const r of rows) {
-      let d;
-      try {
-        d = JSON.parse(r.data);
-      } catch {
-        continue;
+    await cx.scanFile("kilo", path.dirname(db), db, async (out) => {
+      const rows = queryAll(db, "SELECT id, session_id, data FROM message");
+      if (!rows) throw new Error("sqlite unavailable");
+      for (const r of rows) {
+        let d;
+        try {
+          d = JSON.parse(r.data);
+        } catch {
+          continue;
+        }
+        const e = parseMessage(d, { source: "kilo", session: r.session_id });
+        if (e) out.add(e);
       }
-      const e = parseMessage(d, { source: "kilo", session: r.session_id });
-      if (e && cx.add(e)) hits++;
-    }
-    if (hits > 0) cx.file("kilo", path.dirname(db));
+    });
   }
 }
 

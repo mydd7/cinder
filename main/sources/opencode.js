@@ -1,6 +1,7 @@
 const fs = require("fs");
+const fsp = require("fs/promises");
 const path = require("path");
-const { walk, envDirs, HOME } = require("../normalize");
+const { walk, mapLimit, envDirs, HOME } = require("../normalize");
 const { queryAll } = require("../sqlite");
 const { parseMessage } = require("./_message");
 
@@ -44,39 +45,41 @@ function projectsFromDb(db) {
   return map;
 }
 
-function collect(cx) {
+async function collect(cx) {
   for (const dir of dirs()) {
-    let hits = 0;
     for (const db of dbFiles(dir)) {
-      const projects = projectsFromDb(db);
-      const rows = queryAll(db, "SELECT id, session_id, data FROM message");
-      if (!rows) continue;
-      for (const r of rows) {
-        let d;
-        try {
-          d = JSON.parse(r.data);
-        } catch {
-          continue;
+      await cx.scanFile("opencode", dir, db, async (out) => {
+        const projects = projectsFromDb(db);
+        const rows = queryAll(db, "SELECT id, session_id, data FROM message");
+        if (!rows) throw new Error("sqlite unavailable");
+        for (const r of rows) {
+          let d;
+          try {
+            d = JSON.parse(r.data);
+          } catch {
+            continue;
+          }
+          const e = parseMessage(d, { source: "opencode", session: r.session_id, project: projects.get(r.session_id) });
+          if (e) out.add(e);
         }
-        const e = parseMessage(d, { source: "opencode", session: r.session_id, project: projects.get(r.session_id) });
-        if (e && cx.add(e)) hits++;
-      }
+      });
     }
     const msgDir = path.join(dir, "storage", "message");
     const files = [];
     walk(msgDir, ".json", (f) => files.push(f));
-    for (const file of files) {
-      let d;
-      try {
-        d = JSON.parse(fs.readFileSync(file, "utf8"));
-      } catch {
-        continue;
-      }
-      const session = path.basename(path.dirname(file));
-      const e = parseMessage(d, { source: "opencode", session });
-      if (e && cx.add(e)) hits++;
-    }
-    if (hits > 0) cx.file("opencode", dir);
+    await mapLimit(files, 16, (file) =>
+      cx.scanFile("opencode", dir, file, async (out) => {
+        let d;
+        try {
+          d = JSON.parse(await fsp.readFile(file, "utf8"));
+        } catch {
+          return;
+        }
+        const session = path.basename(path.dirname(file));
+        const e = parseMessage(d, { source: "opencode", session });
+        if (e) out.add(e);
+      })
+    );
   }
 }
 

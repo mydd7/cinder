@@ -49,25 +49,38 @@ function candidates(model, provider) {
   return out;
 }
 
+let FLAT_KEYS = null;
+function flatKeys() {
+  if (!FLAT_KEYS) FLAT_KEYS = Object.keys(DATA.flat);
+  return FLAT_KEYS;
+}
+
 function lookup(model, provider) {
-  const flatKeys = Object.keys(DATA.flat);
   for (const c of candidates(model, provider)) {
     if (DATA.qualified[c]) return DATA.qualified[c];
     if (DATA.flat[c]) return DATA.flat[c];
   }
   const bare = stripProvider(norm(model));
   if (bare) {
-    const hit = flatKeys.find((k) => k === bare || k.startsWith(bare) || bare.startsWith(k));
+    const hit = flatKeys().find((k) => k === bare || k.startsWith(bare) || bare.startsWith(k));
     if (hit) return DATA.flat[hit];
   }
   for (const f of FAMILY) if (f.re.test(model)) return { in: f.in, out: f.out, cr: f.cr, cw: f.cw };
   return null;
 }
 
+const CACHE = new Map();
+
 function priceFor(model, provider) {
+  const key = (model || "") + "|" + (provider || "");
+  const hit = CACHE.get(key);
+  if (hit) return hit;
   const p = lookup(model, provider);
-  if (p) return { in: p.in || 0, out: p.out || 0, cacheWrite: p.cw || 0, cacheRead: p.cr || 0, known: true };
-  return { in: 0, out: 0, cacheWrite: 0, cacheRead: 0, known: false };
+  const out = p
+    ? { in: p.in || 0, out: p.out || 0, cacheWrite: p.cw || 0, cacheRead: p.cr || 0, known: true }
+    : { in: 0, out: 0, cacheWrite: 0, cacheRead: 0, known: false };
+  CACHE.set(key, out);
+  return out;
 }
 
 function costParts(model, provider, u) {
