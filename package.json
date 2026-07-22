@@ -1,7 +1,7 @@
 {
   "name": "a-usage",
   "productName": "A\\ Usage",
-  "version": "1.0.1",
+  "version": "1.2.0",
   "private": true,
   "description": "Local dashboard for AI coding token usage.",
   "main": "main.js",
