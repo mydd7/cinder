@@ -9,6 +9,7 @@ const TABS: { id: ViewId; label: string; icon: IconKey }[] = [
   { id: "activity", label: "Activity", icon: "activity" },
   { id: "models", label: "Models", icon: "models" },
   { id: "projects", label: "Projects", icon: "projects" },
+  { id: "sessions", label: "Sessions", icon: "sessions" },
   { id: "providers", label: "Providers", icon: "providers" },
   { id: "badges", label: "Badges", icon: "badges" }
 ];

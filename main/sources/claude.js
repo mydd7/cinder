@@ -38,7 +38,8 @@ function usage(msg) {
     input: num(u.input_tokens) + num(u.prompt_tokens),
     output: num(u.output_tokens) + num(u.completion_tokens),
     cacheWrite: num(u.cache_creation_input_tokens),
-    cacheRead: num(u.cache_read_input_tokens) + num(u.cached_tokens)
+    cacheRead: num(u.cache_read_input_tokens) + num(u.cached_tokens),
+    cacheWrite1h: num((u.cache_creation || {}).ephemeral_1h_input_tokens)
   };
 }
 
@@ -66,6 +67,7 @@ async function collect(cx) {
             output: u.output,
             cacheWrite: u.cacheWrite,
             cacheRead: u.cacheRead,
+            cacheWrite1h: u.cacheWrite1h,
             cost: typeof o.costUSD === "number" ? o.costUSD : undefined,
             dedup: id !== ":" ? id : undefined
           });

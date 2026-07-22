@@ -9,9 +9,9 @@ try {
 }
 
 const FAMILY = [
-  { re: /opus/i, in: 15, out: 75, cw: 18.75, cr: 1.5 },
-  { re: /sonnet/i, in: 3, out: 15, cw: 3.75, cr: 0.3 },
-  { re: /haiku/i, in: 0.8, out: 4, cw: 1, cr: 0.08 },
+  { re: /opus/i, in: 15, out: 75, cw: 18.75, cw1h: 30, cr: 1.5 },
+  { re: /sonnet/i, in: 3, out: 15, cw: 3.75, cw1h: 6, cr: 0.3 },
+  { re: /haiku/i, in: 0.8, out: 4, cw: 1, cw1h: 1.6, cr: 0.08 },
   { re: /gpt-5.*mini|gpt-4\.1-mini|gpt-4o-mini/i, in: 0.25, out: 2, cw: 0, cr: 0.025 },
   { re: /gpt-5|gpt-4\.1|gpt-4o|codex/i, in: 1.25, out: 10, cw: 0, cr: 0.125 },
   { re: /\bo[134]\b|o1-|o3-|o4-/i, in: 15, out: 60, cw: 0, cr: 7.5 },
@@ -65,36 +65,98 @@ function lookup(model, provider) {
     const hit = flatKeys().find((k) => k === bare || k.startsWith(bare) || bare.startsWith(k));
     if (hit) return DATA.flat[hit];
   }
-  for (const f of FAMILY) if (f.re.test(model)) return { in: f.in, out: f.out, cr: f.cr, cw: f.cw };
+  for (const f of FAMILY) if (f.re.test(model)) return { in: f.in, out: f.out, cr: f.cr, cw: f.cw, cw1h: f.cw1h };
   return null;
+}
+
+const EPOCHS = [];
+const seenEpochs = new Set();
+function collectEpochs(entries) {
+  for (const entry of Object.values(entries)) {
+    if (entry && Array.isArray(entry.dated)) {
+      for (const d of entry.dated) {
+        if (d.until) {
+          const ms = new Date(d.until).getTime();
+          if (!isNaN(ms) && !seenEpochs.has(ms)) {
+            seenEpochs.add(ms);
+            EPOCHS.push(ms);
+          }
+        }
+      }
+    }
+  }
+}
+if (DATA.flat) collectEpochs(DATA.flat);
+if (DATA.qualified) collectEpochs(DATA.qualified);
+EPOCHS.sort((a, b) => a - b);
+
+function epochOf(ts) {
+  if (!ts) return 0;
+  const ms = new Date(ts).getTime();
+  if (isNaN(ms)) return 0;
+  let epoch = 0;
+  for (let i = 0; i < EPOCHS.length; i++) {
+    if (ms < EPOCHS[i]) {
+      break;
+    }
+    epoch = i + 1;
+  }
+  return epoch;
+}
+
+function getDatedRate(p, ts) {
+  if (!p) return null;
+  if (ts && Array.isArray(p.dated)) {
+    const ms = new Date(ts).getTime();
+    if (!isNaN(ms)) {
+      for (const d of p.dated) {
+        const untilMs = new Date(d.until).getTime();
+        if (!isNaN(untilMs) && ms < untilMs) {
+          return d;
+        }
+      }
+    }
+  }
+  return p;
 }
 
 const CACHE = new Map();
 
-function priceFor(model, provider) {
-  const key = (model || "") + "|" + (provider || "");
+function priceFor(model, provider, ts) {
+  const epoch = epochOf(ts);
+  const key = (model || "") + "|" + (provider || "") + "|" + epoch;
   const hit = CACHE.get(key);
   if (hit) return hit;
-  const p = lookup(model, provider);
+  const base = lookup(model, provider);
+  const p = getDatedRate(base, ts);
   const out = p
-    ? { in: p.in || 0, out: p.out || 0, cacheWrite: p.cw || 0, cacheRead: p.cr || 0, known: true }
-    : { in: 0, out: 0, cacheWrite: 0, cacheRead: 0, known: false };
+    ? {
+        in: p.in || 0,
+        out: p.out || 0,
+        cacheWrite: p.cw || 0,
+        cacheWrite1h: p.cw1h !== undefined ? p.cw1h : (p.cw ? p.cw * 1.6 : 0),
+        cacheRead: p.cr || 0,
+        known: true
+      }
+    : { in: 0, out: 0, cacheWrite: 0, cacheWrite1h: 0, cacheRead: 0, known: false };
   CACHE.set(key, out);
   return out;
 }
 
-function costParts(model, provider, u) {
-  const p = priceFor(model, provider);
+function costParts(model, provider, u, ts) {
+  const p = priceFor(model, provider, ts);
+  const w1h = Math.min(u.cacheWrite1h || 0, u.cacheWrite);
+  const w5m = u.cacheWrite - w1h;
   return {
     input: (u.input / 1e6) * p.in,
     output: (u.output / 1e6) * p.out,
-    cacheWrite: (u.cacheWrite / 1e6) * p.cacheWrite,
+    cacheWrite: (w5m / 1e6) * p.cacheWrite + (w1h / 1e6) * p.cacheWrite1h,
     cacheRead: (u.cacheRead / 1e6) * p.cacheRead
   };
 }
 
-function costOf(model, provider, u) {
-  const c = costParts(model, provider, u);
+function costOf(model, provider, u, ts) {
+  const c = costParts(model, provider, u, ts);
   return c.input + c.output + c.cacheWrite + c.cacheRead;
 }
 

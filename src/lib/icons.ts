@@ -40,7 +40,8 @@ import {
   Target01Icon,
   SparklesIcon,
   PieChart01Icon,
-  Medal01Icon
+  Medal01Icon,
+  Search01Icon
 } from "@hugeicons/core-free-icons";
 
 export const ICON = {
@@ -50,6 +51,7 @@ export const ICON = {
   projects: FolderLibraryIcon,
   providers: ServerStack01Icon,
   badges: ChampionIcon,
+  search: Search01Icon,
 
   tokens: Coins01Icon,
   input: ArrowDown01Icon,

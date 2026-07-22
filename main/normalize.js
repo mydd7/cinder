@@ -95,7 +95,7 @@ function envDirs(name) {
 class Collector {
   constructor() {
     this.entries = [];
-    this.seen = new Set();
+    this.seen = new Map();
     this.sources = new Map();
     this.home = HOME;
     this.cacheIn = {};
@@ -108,14 +108,14 @@ class Collector {
     this.cachePath = path.join(dir, "scan-cache.json");
     try {
       const raw = JSON.parse(fs.readFileSync(this.cachePath, "utf8"));
-      if (raw && raw.v === 2 && raw.files) this.cacheIn = raw.files;
+      if (raw && raw.v === 3 && raw.files) this.cacheIn = raw.files;
     } catch {}
   }
 
   saveCache() {
     if (!this.cachePath) return;
     try {
-      fs.writeFileSync(this.cachePath, JSON.stringify({ v: 2, files: this.cacheOut }));
+      fs.writeFileSync(this.cachePath, JSON.stringify({ v: 3, files: this.cacheOut }));
     } catch {}
   }
 
@@ -163,6 +163,7 @@ class Collector {
       input: num(e.input),
       output: num(e.output),
       cacheWrite: num(e.cacheWrite),
+      cacheWrite1h: num(e.cacheWrite1h),
       cacheRead: num(e.cacheRead)
     };
     const reasoning = num(e.reasoning);
@@ -170,15 +171,40 @@ class Collector {
     if (usage.input + usage.output + usage.cacheWrite + usage.cacheRead === 0) return false;
     if (e.dedup) {
       const key = e.source + ":" + e.dedup;
-      if (this.seen.has(key)) return false;
-      this.seen.add(key);
+      const prev = this.seen.get(key);
+      if (prev) {
+        let changed = false;
+        for (const f of ["input", "output", "cacheWrite", "cacheWrite1h", "cacheRead"]) {
+          if (usage[f] > prev[f]) { prev[f] = usage[f]; changed = true; }
+        }
+        if (reasoning > prev.reasoning) { prev.reasoning = reasoning; changed = true; }
+        if (changed) {
+          const model = prev.model;
+          const provider = prev.provider;
+          const u = {
+            input: prev.input,
+            output: prev.output,
+            cacheWrite: prev.cacheWrite,
+            cacheWrite1h: prev.cacheWrite1h,
+            cacheRead: prev.cacheRead
+          };
+          const parts = costParts(model, provider, u, prev.ts);
+          const computed = parts.input + parts.output + parts.cacheWrite + parts.cacheRead;
+          prev.costInput = parts.input;
+          prev.costOutput = parts.output;
+          prev.costCacheWrite = parts.cacheWrite;
+          prev.costCacheRead = parts.cacheRead;
+          prev.cost = typeof e.cost === "number" && isFinite(e.cost) ? e.cost : computed;
+        }
+        return false;
+      }
     }
     const model = e.model || "unknown";
     const provider = e.provider || e.source;
-    const parts = costParts(model, provider, usage);
+    const parts = costParts(model, provider, usage, ts);
     const computed = parts.input + parts.output + parts.cacheWrite + parts.cacheRead;
     const cost = typeof e.cost === "number" && isFinite(e.cost) ? e.cost : computed;
-    this.entries.push({
+    const entry = {
       ts,
       source: e.source,
       model,
@@ -188,6 +214,7 @@ class Collector {
       input: usage.input,
       output: usage.output,
       cacheWrite: usage.cacheWrite,
+      cacheWrite1h: usage.cacheWrite1h,
       cacheRead: usage.cacheRead,
       reasoning,
       cost,
@@ -195,7 +222,9 @@ class Collector {
       costOutput: parts.output,
       costCacheWrite: parts.cacheWrite,
       costCacheRead: parts.cacheRead
-    });
+    };
+    this.entries.push(entry);
+    if (e.dedup) this.seen.set(e.source + ":" + e.dedup, entry);
     this.stat(e.source).entries += 1;
     return true;
   }

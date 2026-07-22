@@ -13,8 +13,9 @@ import { Models } from "@/views/Models";
 import { Projects } from "@/views/Projects";
 import { Providers } from "@/views/Providers";
 import { Badges } from "@/views/Badges";
+import { Sessions } from "@/views/Sessions";
 
-export type ViewId = "overview" | "activity" | "models" | "projects" | "providers" | "badges";
+export type ViewId = "overview" | "activity" | "models" | "projects" | "providers" | "badges" | "sessions";
 
 const PERIODS = [
   { d: 7, label: "7D" },
@@ -29,7 +30,8 @@ const TITLES: Record<ViewId, string> = {
   models: "Models",
   projects: "Projects",
   providers: "Providers",
-  badges: "Badges"
+  badges: "Badges",
+  sessions: "Sessions"
 };
 
 export function App() {
@@ -107,6 +109,7 @@ export function App() {
             {view === "activity" && <Activity sum={sum} full={full} entries={periodEntries} period={period} />}
             {view === "models" && <Models sum={sum} period={period} />}
             {view === "projects" && <Projects sum={sum} period={period} />}
+            {view === "sessions" && <Sessions entries={periodEntries} />}
             {view === "providers" && <Providers full={full} entries={entries} />}
             {view === "badges" && <Badges full={full} />}
           </div>
