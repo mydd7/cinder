@@ -38,9 +38,9 @@ function dbFiles(dir) {
   return out;
 }
 
-function projectsFromDb(db) {
+async function projectsFromDb(db) {
   const map = new Map();
-  const rows = queryAll(db, "SELECT id, directory FROM session");
+  const rows = await queryAll(db, "SELECT id, directory FROM session");
   if (rows) for (const s of rows) if (s.directory) map.set(s.id, path.basename(String(s.directory)));
   return map;
 }
@@ -49,8 +49,8 @@ async function collect(cx) {
   for (const dir of dirs()) {
     for (const db of dbFiles(dir)) {
       await cx.scanFile("opencode", dir, db, async (out) => {
-        const projects = projectsFromDb(db);
-        const rows = queryAll(db, "SELECT id, session_id, data FROM message");
+        const projects = await projectsFromDb(db);
+        const rows = await queryAll(db, "SELECT id, session_id, data FROM message");
         if (!rows) throw new Error("sqlite unavailable");
         for (const r of rows) {
           let d;

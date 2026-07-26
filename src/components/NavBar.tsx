@@ -14,6 +14,8 @@ const TABS: { id: ViewId; label: string; icon: IconKey }[] = [
   { id: "badges", label: "Badges", icon: "badges" }
 ];
 
+export const VIEW_ORDER: ViewId[] = TABS.map((t) => t.id);
+
 interface Props {
   view: ViewId;
   onView: (v: ViewId) => void;

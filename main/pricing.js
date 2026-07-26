@@ -9,9 +9,9 @@ try {
 }
 
 const FAMILY = [
-  { re: /opus/i, in: 15, out: 75, cw: 18.75, cw1h: 30, cr: 1.5 },
+  { re: /opus/i, in: 5, out: 25, cw: 6.25, cw1h: 10, cr: 0.5 },
   { re: /sonnet/i, in: 3, out: 15, cw: 3.75, cw1h: 6, cr: 0.3 },
-  { re: /haiku/i, in: 0.8, out: 4, cw: 1, cw1h: 1.6, cr: 0.08 },
+  { re: /haiku/i, in: 1, out: 5, cw: 1.25, cw1h: 2, cr: 0.1 },
   { re: /gpt-5.*mini|gpt-4\.1-mini|gpt-4o-mini/i, in: 0.25, out: 2, cw: 0, cr: 0.025 },
   { re: /gpt-5|gpt-4\.1|gpt-4o|codex/i, in: 1.25, out: 10, cw: 0, cr: 0.125 },
   { re: /\bo[134]\b|o1-|o3-|o4-/i, in: 15, out: 60, cw: 0, cr: 7.5 },
@@ -55,6 +55,44 @@ function flatKeys() {
   return FLAT_KEYS;
 }
 
+const BOUNDARY = new Set(["-", ".", "@", ":", "/", "_"]);
+
+function nearest(bare) {
+  let best = null;
+  for (const k of flatKeys()) {
+    if (k === bare) return k;
+    const long = k.length > bare.length ? k : bare;
+    const short = k.length > bare.length ? bare : k;
+    if (!long.startsWith(short) || !BOUNDARY.has(long.charAt(short.length))) continue;
+    if (!best || k.length > best.length) best = k;
+  }
+  return best;
+}
+
+function versionScore(rest) {
+  const m = rest.match(/^(\d+)(?:[-.](\d+))?/);
+  if (!m || m[1].length > 2) return 0;
+  const minor = m[2] && m[2].length <= 2 ? Number(m[2]) : 0;
+  return Number(m[1]) * 1000 + minor;
+}
+
+function sibling(bare) {
+  const stem = bare.replace(/[-.]?[\d.]+(?:[-.].*)?$/, "");
+  if (stem.length < 4 || stem === bare) return null;
+  const prefix = stem + "-";
+  let best = null;
+  let bestScore = -1;
+  for (const k of flatKeys()) {
+    if (!k.startsWith(prefix)) continue;
+    const score = versionScore(k.slice(prefix.length));
+    if (score > bestScore) {
+      bestScore = score;
+      best = k;
+    }
+  }
+  return bestScore > 0 ? best : null;
+}
+
 function lookup(model, provider) {
   for (const c of candidates(model, provider)) {
     if (DATA.qualified[c]) return DATA.qualified[c];
@@ -62,7 +100,7 @@ function lookup(model, provider) {
   }
   const bare = stripProvider(norm(model));
   if (bare) {
-    const hit = flatKeys().find((k) => k === bare || k.startsWith(bare) || bare.startsWith(k));
+    const hit = sibling(bare) || nearest(bare);
     if (hit) return DATA.flat[hit];
   }
   for (const f of FAMILY) if (f.re.test(model)) return { in: f.in, out: f.out, cr: f.cr, cw: f.cw, cw1h: f.cw1h };
@@ -129,13 +167,14 @@ function priceFor(model, provider, ts) {
   if (hit) return hit;
   const base = lookup(model, provider);
   const p = getDatedRate(base, ts);
+  const write = /opus|sonnet|haiku/i.test(model) || norm(provider) === "anthropic";
   const out = p
     ? {
         in: p.in || 0,
         out: p.out || 0,
-        cacheWrite: p.cw || 0,
-        cacheWrite1h: p.cw1h !== undefined ? p.cw1h : (p.cw ? p.cw * 1.6 : 0),
-        cacheRead: p.cr || 0,
+        cacheWrite: p.cw !== undefined ? p.cw : write ? (p.in || 0) * 1.25 : 0,
+        cacheWrite1h: p.cw1h !== undefined ? p.cw1h : p.cw ? p.cw * 1.6 : write ? (p.in || 0) * 2 : 0,
+        cacheRead: p.cr !== undefined ? p.cr : (p.in || 0) * 0.1,
         known: true
       }
     : { in: 0, out: 0, cacheWrite: 0, cacheWrite1h: 0, cacheRead: 0, known: false };

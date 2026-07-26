@@ -20,7 +20,7 @@ function add(t: Totals, e: Entry) {
 export function filterPeriod(entries: Entry[], days: number): Entry[] {
   if (!days) return entries;
   const cut = Date.now() - days * 24 * HOUR;
-  return entries.filter((e) => new Date(e.ts).getTime() >= cut);
+  return entries.filter((e) => e.t >= cut);
 }
 
 export function summarize(entries: Entry[]): Summary {
@@ -42,8 +42,8 @@ export function summarize(entries: Entry[]): Summary {
     costBy.output += e.costOutput;
     costBy.cacheWrite += e.costCacheWrite;
     costBy.cacheRead += e.costCacheRead;
-    const d = new Date(e.ts);
-    const t = d.getTime();
+    const t = e.t;
+    const d = new Date(t);
     if (first === null || t < first) first = t;
     if (last === null || t > last) last = t;
 
@@ -129,7 +129,7 @@ export function heatmap(entries: Entry[], days = 371): { cells: HeatCell[]; max:
   const counts = new Map<string, number>();
   const cut = Date.now() - days * 24 * HOUR;
   for (const e of entries) {
-    const t = new Date(e.ts).getTime();
+    const t = e.t;
     if (t < cut) continue;
     const k = fmt.dayKey(new Date(t));
     counts.set(k, (counts.get(k) || 0) + 1);

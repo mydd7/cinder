@@ -1,3 +1,4 @@
+import { Logo } from "./Logo";
 import { ThemeMenu } from "./ThemeMenu";
 import { WindowControls } from "./WindowControls";
 import type { Mode } from "@/lib/themes";
@@ -11,14 +12,12 @@ interface Props {
 
 export function TitleBar({ themeId, mode, onTheme, onMode }: Props) {
   return (
-    <header className="drag flex h-full items-center gap-2 border-b border-border/50 bg-background pr-1 pl-3 select-none">
-      <span
-        className="grid h-[21px] w-[21px] place-items-center rounded-[7px] font-mono text-[11px] font-semibold text-white shadow-sm"
-        style={{ background: "linear-gradient(140deg, var(--brand), var(--brand-2))" }}
-      >
-        {"A\\"}
-      </span>
-      <span className="text-[12.5px] font-semibold tracking-tight">Usage</span>
+    <header
+      className="drag flex h-full items-center gap-2 border-b border-border/50 bg-background pr-1 pl-3 select-none"
+      onDoubleClick={() => void window.cinder?.toggleMaximize()}
+    >
+      <Logo size={16} className="shrink-0 text-brand" />
+      <span className="text-[12.5px] font-semibold tracking-tight">Cinder</span>
 
       <div className="drag h-full flex-1" />
 

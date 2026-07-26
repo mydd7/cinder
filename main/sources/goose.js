@@ -30,7 +30,7 @@ function modelName(json) {
 async function collect(cx) {
   for (const db of dbs()) {
     await cx.scanFile("goose", path.dirname(db), db, async (out) => {
-      const rows = queryAll(db, QUERY);
+      const rows = await queryAll(db, QUERY);
       if (!rows) throw new Error("sqlite unavailable");
       for (const r of rows) {
         const input = num(r.accumulated_input_tokens) || num(r.input_tokens);

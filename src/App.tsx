@@ -3,10 +3,11 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { ICON } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 import { filterPeriod, summarize } from "@/lib/aggregate";
+import { readPref, writePref } from "@/lib/prefs";
 import { applyTheme, DEFAULT_THEME, paletteOf, type Mode } from "@/lib/themes";
 import { useUsage } from "@/hooks/useUsage";
 import { TitleBar } from "@/components/TitleBar";
-import { NavBar } from "@/components/NavBar";
+import { NavBar, VIEW_ORDER } from "@/components/NavBar";
 import { Overview } from "@/views/Overview";
 import { Activity } from "@/views/Activity";
 import { Models } from "@/views/Models";
@@ -34,19 +35,48 @@ const TITLES: Record<ViewId, string> = {
   sessions: "Sessions"
 };
 
+function initialPeriod(): number {
+  const saved = Number(readPref("period"));
+  return PERIODS.some((p) => p.d === saved) ? saved : 30;
+}
+
 export function App() {
   const { data, loading, reload } = useUsage();
   const [view, setView] = useState<ViewId>("overview");
-  const [period, setPeriod] = useState(30);
-  const [themeId, setThemeId] = useState(() => localStorage.getItem("au-theme-id") || DEFAULT_THEME);
-  const [mode, setMode] = useState<Mode>(() => (localStorage.getItem("au-mode") === "light" ? "light" : "dark"));
+  const [period, setPeriod] = useState(initialPeriod);
+  const [themeId, setThemeId] = useState(() => readPref("theme-id") || DEFAULT_THEME);
+  const [mode, setMode] = useState<Mode>(() => (readPref("mode") === "light" ? "light" : "dark"));
 
   useEffect(() => {
     applyTheme(themeId, mode);
-    localStorage.setItem("au-theme-id", themeId);
-    localStorage.setItem("au-mode", mode);
-    localStorage.setItem("au-bg", paletteOf(themeId, mode).bg);
+    writePref("theme-id", themeId);
+    writePref("mode", mode);
+    window.cinder?.setBackground(paletteOf(themeId, mode).bg);
   }, [themeId, mode]);
+
+  useEffect(() => {
+    writePref("period", String(period));
+  }, [period]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) return;
+      if (!e.ctrlKey && !e.metaKey) return;
+      if (e.key === "r" || e.key === "R") {
+        e.preventDefault();
+        void reload();
+        return;
+      }
+      const n = Number(e.key);
+      if (n >= 1 && n <= VIEW_ORDER.length) {
+        e.preventDefault();
+        setView(VIEW_ORDER[n - 1]);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [reload]);
 
   const entries = data?.entries ?? [];
   const full = useMemo(() => summarize(entries), [entries]);
@@ -83,8 +113,9 @@ export function App() {
             )}
             <button
               onClick={() => void reload()}
+              disabled={loading}
               aria-label="Rescan logs"
-              className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none"
             >
               <HugeiconsIcon icon={ICON.refresh} size={16} strokeWidth={1.8} className={loading ? "animate-spin" : ""} />
             </button>

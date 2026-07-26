@@ -18,7 +18,7 @@ function dbs() {
 async function collect(cx) {
   for (const db of dbs()) {
     await cx.scanFile("kilo", path.dirname(db), db, async (out) => {
-      const rows = queryAll(db, "SELECT id, session_id, data FROM message");
+      const rows = await queryAll(db, "SELECT id, session_id, data FROM message");
       if (!rows) throw new Error("sqlite unavailable");
       for (const r of rows) {
         let d;

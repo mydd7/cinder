@@ -1,7 +1,7 @@
 {
-  "name": "a-usage",
-  "productName": "A\\ Usage",
-  "version": "1.2.0",
+  "name": "cinder",
+  "productName": "Cinder",
+  "version": "2.0.0",
   "private": true,
   "description": "Local dashboard for AI coding token usage.",
   "main": "main.js",
@@ -10,6 +10,7 @@
     "dev:web": "vite",
     "start": "vite build && electron .",
     "dev": "concurrently -k \"vite\" \"cross-env AU_DEV=1 electron .\"",
+    "icons": "node tools/make-icons.js",
     "dist": "vite build && electron-builder --dir",
     "build": "vite build && electron-builder"
   },
@@ -40,13 +41,14 @@
     "vite": "^6.3.6"
   },
   "build": {
-    "appId": "app.local.ausage",
-    "productName": "A Usage",
+    "appId": "app.local.cinder",
+    "productName": "Cinder",
     "directories": { "output": "release" },
-    "files": ["main.js", "preload.js", "main/**/*", "pricing-data.json", "dist/**/*", "package.json"],
+    "files": ["main.js", "preload.js", "main/**/*", "icon/icon.png", "icon/icon.ico", "pricing-data.json", "dist/**/*", "package.json"],
     "asarUnpack": ["main/sqlite-reader.js"],
-    "win": { "target": "nsis" },
-    "linux": { "target": "AppImage" },
-    "mac": { "target": "dmg" }
+    "win": { "target": "nsis", "icon": "icon/icon.ico" },
+    "linux": { "target": "AppImage", "icon": "icon/icon.png", "category": "Development" },
+    "mac": { "target": "dmg", "icon": "icon/icon.png" },
+    "nsis": { "shortcutName": "Cinder" }
   }
 }

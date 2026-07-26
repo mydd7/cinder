@@ -114,9 +114,15 @@ class Collector {
 
   saveCache() {
     if (!this.cachePath) return;
+    const tmp = this.cachePath + ".tmp";
     try {
-      fs.writeFileSync(this.cachePath, JSON.stringify({ v: 3, files: this.cacheOut }));
-    } catch {}
+      fs.writeFileSync(tmp, JSON.stringify({ v: 3, files: this.cacheOut }));
+      fs.renameSync(tmp, this.cachePath);
+    } catch {
+      try {
+        fs.unlinkSync(tmp);
+      } catch {}
+    }
   }
 
   async scanFile(source, dir, key, parseFn) {
@@ -206,6 +212,7 @@ class Collector {
     const cost = typeof e.cost === "number" && isFinite(e.cost) ? e.cost : computed;
     const entry = {
       ts,
+      t: Date.parse(ts),
       source: e.source,
       model,
       provider,
@@ -230,7 +237,7 @@ class Collector {
   }
 
   result() {
-    this.entries.sort((a, b) => new Date(a.ts) - new Date(b.ts));
+    this.entries.sort((a, b) => a.t - b.t);
     const sources = [...this.sources.values()]
       .filter((s) => s.entries > 0)
       .map((s) => ({ source: s.source, files: s.files, entries: s.entries, dir: s.dirs[0] || "" }));

@@ -35,20 +35,21 @@ export function WindowControls() {
   const [max, setMax] = useState(false);
 
   useEffect(() => {
-    if (!window.au) return;
-    void window.au.isMaximized().then(setMax);
-    window.au.onWindowState(setMax);
+    const api = window.cinder;
+    if (!api) return;
+    void api.isMaximized().then(setMax).catch(() => {});
+    api.onWindowState(setMax);
   }, []);
 
   return (
     <div className="no-drag flex items-center gap-0.5 pr-1">
-      <Ctl icon={ICON.minimize} label="Minimize" onClick={() => void window.au.minimize()} />
+      <Ctl icon={ICON.minimize} label="Minimize" onClick={() => void window.cinder?.minimize()} />
       <Ctl
         icon={max ? ICON.restore : ICON.maximize}
         label={max ? "Restore" : "Maximize"}
-        onClick={() => void window.au.toggleMaximize().then(setMax)}
+        onClick={() => void window.cinder?.toggleMaximize().then(setMax).catch(() => {})}
       />
-      <Ctl icon={ICON.close} label="Close" size={14} onClick={() => void window.au.close()} danger />
+      <Ctl icon={ICON.close} label="Close" size={14} onClick={() => void window.cinder?.close()} danger />
     </div>
   );
 }

@@ -15,7 +15,7 @@ function dbs() {
 async function collect(cx) {
   for (const db of dbs()) {
     await cx.scanFile("hermes", path.dirname(db), db, async (out) => {
-      const rows = queryAll(db, QUERY);
+      const rows = await queryAll(db, QUERY);
       if (!rows) throw new Error("sqlite unavailable");
       for (const r of rows) {
         const cost =

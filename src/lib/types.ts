@@ -1,5 +1,6 @@
 export interface Entry {
   ts: string;
+  t: number;
   source: string;
   model: string;
   provider: string;
@@ -81,12 +82,13 @@ export interface Summary {
 
 declare global {
   interface Window {
-    au: {
+    cinder?: {
       minimize: () => Promise<void>;
       toggleMaximize: () => Promise<boolean>;
       close: () => Promise<void>;
       isMaximized: () => Promise<boolean>;
       onWindowState: (cb: (v: boolean) => void) => void;
+      setBackground: (bg: string) => void;
       collect: () => Promise<CollectResult>;
       openExternal: (url: string) => Promise<void>;
     };
