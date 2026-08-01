@@ -36,7 +36,8 @@ const COLOR: Record<string, string> = {
   codebuff: "var(--data-2)",
   openclaw: "var(--data-3)",
   pi: "var(--data-5)",
-  copilot: "var(--muted-foreground)"
+  copilot: "var(--muted-foreground)",
+  antigravity: "var(--data-1)"
 };
 
 export const provLabel = (s: string) => LABEL[s] || s;

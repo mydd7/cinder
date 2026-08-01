@@ -199,4 +199,11 @@ function costOf(model, provider, u, ts) {
   return c.input + c.output + c.cacheWrite + c.cacheRead;
 }
 
-module.exports = { priceFor, costOf, costParts };
+function hasRate(model, provider) {
+  for (const c of candidates(model, provider)) {
+    if (DATA.qualified[c] || DATA.flat[c]) return true;
+  }
+  return false;
+}
+
+module.exports = { priceFor, costOf, costParts, hasRate };

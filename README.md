@@ -21,10 +21,12 @@ local desktop dashboard for AI coding token usage. reads local logs only, nothin
 Electron shell, React 19, Vite, Tailwind v4, shadcn/ui, hugeicons. renderer in `src/`, collector and source readers in `main/`, bridge in `preload.js`.
 
 ## Sources
-Claude, Codex, OpenCode, Kilo, Goose, Hermes, Gemini, Qwen, Droid, Amp, Kimi, Codebuff, OpenClaw, Pi, GitHub Copilot. each reader lives in `main/sources/` and resolves its own default paths plus an override env var. SQLite sources use the built-in `node:sqlite`.
+Claude, Codex, OpenCode, Kilo, Goose, Hermes, Gemini, Qwen, Droid, Amp, Kimi, Codebuff, OpenClaw, Pi, GitHub Copilot, Antigravity. each reader lives in `main/sources/` and resolves its own default paths plus an override env var. SQLite sources use the built-in `node:sqlite`. Antigravity stores usage as protobuf inside its conversation databases and ships no `.proto`, so its reader decodes by field number.
 
 ## Pricing
-cost is computed per model from a bundled `pricing-data.json` snapshot of model prices, keyed by model id with a provider-qualified fallback. unknown models resolve to zero.
+cost is computed per model from a bundled `pricing-data.json` snapshot, keyed by model id with a provider-qualified fallback. unknown models resolve to zero. no network calls at runtime.
+
+`npm run pricing` rebuilds the snapshot from LiteLLM and models.dev. LiteLLM wins conflicts. the build refuses to write if a spot check fails.
 
 ## Shortcuts
 `Ctrl/Cmd+R` rescan, `Ctrl/Cmd+1..7` switch view. theme, mode, period and window geometry persist between launches.

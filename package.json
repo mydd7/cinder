@@ -1,7 +1,7 @@
 {
   "name": "cinder",
   "productName": "Cinder",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "description": "Local dashboard for AI coding token usage.",
   "main": "main.js",
@@ -11,6 +11,7 @@
     "start": "vite build && electron .",
     "dev": "concurrently -k \"vite\" \"cross-env AU_DEV=1 electron .\"",
     "icons": "node tools/make-icons.js",
+    "pricing": "node tools/build-pricing.js",
     "dist": "vite build && electron-builder --dir",
     "build": "vite build && electron-builder"
   },
