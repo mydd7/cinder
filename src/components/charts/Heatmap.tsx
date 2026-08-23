@@ -5,11 +5,33 @@ import { useMeasure } from "@/hooks/useMeasure";
 import type { Entry } from "@/lib/types";
 import { ChartTip } from "./ChartTip";
 
-const LEVELS = ["var(--heat-0)", "var(--heat-1)", "var(--heat-2)", "var(--heat-3)", "var(--heat-4)"];
+export const HEAT_LEVELS = ["var(--heat-0)", "var(--heat-1)", "var(--heat-2)", "var(--heat-3)", "var(--heat-4)"];
 const WD = ["S", "M", "T", "W", "T", "F", "S"];
 const GAP = 3;
 
-export function Heatmap({ entries, days }: { entries: Entry[]; days: number }) {
+export function HeatLegend() {
+  return (
+    <div className="mt-3.5 flex items-center justify-end gap-1.5 text-[11px] text-muted-foreground">
+      <span>Less</span>
+      {HEAT_LEVELS.map((l, i) => (
+        <span key={i} className="h-3 w-3 rounded-[3px]" style={{ background: l }} />
+      ))}
+      <span>More</span>
+    </div>
+  );
+}
+
+export function Heatmap({
+  entries,
+  days,
+  maxCell,
+  showLegend = true
+}: {
+  entries: Entry[];
+  days: number;
+  maxCell?: number;
+  showLegend?: boolean;
+}) {
   const { ref, width } = useMeasure<HTMLDivElement>();
   const hm = useMemo(() => heatmap(entries, days), [entries, days]);
   const [hover, setHover] = useState<{ text: string; x: number; y: number } | null>(null);
@@ -23,26 +45,18 @@ export function Heatmap({ entries, days }: { entries: Entry[]; days: number }) {
     return (
       <div
         key={key}
-        style={{ width: cell, height: cell, borderRadius: radius, background: LEVELS[lvl] }}
+        style={{ width: cell, height: cell, borderRadius: radius, background: HEAT_LEVELS[lvl] }}
         onMouseMove={(e) => setHover({ text: c.count + " request" + (c.count === 1 ? "" : "s") + " · " + fmt.dayLabel(c.key), x: e.clientX, y: e.clientY })}
         onMouseLeave={() => setHover(null)}
       />
     );
   }
 
-  const legend = (
-    <div className="mt-3.5 flex items-center justify-end gap-1.5 text-[11px] text-muted-foreground">
-      <span>Less</span>
-      {LEVELS.map((l, i) => (
-        <span key={i} className="h-3 w-3 rounded-[3px]" style={{ background: l }} />
-      ))}
-      <span>More</span>
-    </div>
-  );
+  const legend = showLegend ? <HeatLegend /> : null;
 
   if (calendar) {
     let cell = Math.floor((avail - 6 * GAP) / 7);
-    cell = Math.max(16, Math.min(cell, 46));
+    cell = Math.max(Math.min(16, maxCell ?? 16), Math.min(cell, maxCell ?? 46));
     const radius = Math.max(4, Math.round(cell * 0.22));
     const blockW = 7 * cell + 6 * GAP;
     return (
@@ -65,7 +79,7 @@ export function Heatmap({ entries, days }: { entries: Entry[]; days: number }) {
 
   const cols = Math.max(1, Math.ceil(hm.cells.length / 7));
   let cell = Math.floor((avail - (cols - 1) * GAP) / cols);
-  cell = Math.max(10, Math.min(cell, 30));
+  cell = Math.max(Math.min(10, maxCell ?? 10), Math.min(cell, maxCell ?? 30));
   const step = cell + GAP;
   const radius = Math.max(3, Math.round(cell * 0.24));
   const gridW = cols * cell + (cols - 1) * GAP;

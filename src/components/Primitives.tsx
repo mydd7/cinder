@@ -65,7 +65,7 @@ export function BarRow({
   color,
   amt
 }: {
-  name: string;
+  name: ReactNode;
   value: number;
   max: number;
   color: string;
@@ -74,7 +74,7 @@ export function BarRow({
   const w = max ? (value / max) * 100 : 0;
   return (
     <div className="grid grid-cols-[130px_1fr_auto] items-center gap-3">
-      <div className="truncate text-[12.5px]">{name}</div>
+      <div className="truncate text-[12.5px]" title={typeof name === "string" ? name : undefined}>{name}</div>
       <div className="h-[7px] overflow-hidden rounded-full bg-muted">
         <div className="h-full rounded-full transition-[width] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]" style={{ width: `${w.toFixed(1)}%`, background: color }} />
       </div>

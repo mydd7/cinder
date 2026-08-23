@@ -7,6 +7,7 @@ import type { ViewId } from "@/App";
 const TABS: { id: ViewId; label: string; icon: IconKey }[] = [
   { id: "overview", label: "Overview", icon: "overview" },
   { id: "activity", label: "Activity", icon: "activity" },
+  { id: "calls", label: "Calls", icon: "bolt" },
   { id: "models", label: "Models", icon: "models" },
   { id: "projects", label: "Projects", icon: "projects" },
   { id: "sessions", label: "Sessions", icon: "sessions" },

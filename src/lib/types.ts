@@ -30,6 +30,38 @@ export interface SourceInfo {
   label: string;
 }
 
+export interface CallStat {
+  name: string;
+  count: number;
+}
+
+export interface McpToolStat {
+  server: string;
+  name: string;
+  count: number;
+}
+
+export interface SourceCalls {
+  total: number;
+  tools: CallStat[];
+  mcpTools: McpToolStat[];
+  mcpServers: CallStat[];
+  skills: CallStat[];
+  byDay: Record<string, number>;
+}
+
+export interface InstalledInfo {
+  skills: string[];
+  mcp: Record<string, string[]>;
+}
+
+export interface CallsResult {
+  sources: Record<string, SourceCalls>;
+  installed?: InstalledInfo;
+  scannedAt: string;
+  error?: string;
+}
+
 export interface CollectResult {
   entries: Entry[];
   sources: SourceMeta[];
@@ -90,6 +122,7 @@ declare global {
       onWindowState: (cb: (v: boolean) => void) => void;
       setBackground: (bg: string) => void;
       collect: () => Promise<CollectResult>;
+      calls: () => Promise<CallsResult>;
       openExternal: (url: string) => Promise<void>;
     };
   }

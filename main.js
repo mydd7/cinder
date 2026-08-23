@@ -2,6 +2,7 @@ const { app, BrowserWindow, Menu, ipcMain, screen, shell } = require("electron")
 const fs = require("fs");
 const path = require("path");
 const { collect } = require("./main/collect");
+const { collectCalls } = require("./main/calls");
 
 const ICON = path.join(__dirname, "icon", process.platform === "win32" ? "icon.ico" : "icon.png");
 const DEFAULT_BG = "#1f1e1d";
@@ -158,6 +159,22 @@ ipcMain.handle("usage:collect", () => {
 });
 
 ipcMain.handle("app:open-external", (_e, url) => openExternal(url));
+
+let callsScanning = null;
+ipcMain.handle("usage:calls", () => {
+  if (callsScanning) return callsScanning;
+  callsScanning = collectCalls(app.getPath("userData"))
+    .catch((err) => ({
+      sources: {},
+      installed: { skills: [], mcp: {} },
+      scannedAt: new Date().toISOString(),
+      error: String(err && err.message ? err.message : err)
+    }))
+    .finally(() => {
+      callsScanning = null;
+    });
+  return callsScanning;
+});
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();

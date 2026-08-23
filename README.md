@@ -28,5 +28,8 @@ cost is computed per model from a bundled `pricing-data.json` snapshot, keyed by
 
 `npm run pricing` rebuilds the snapshot from LiteLLM and models.dev. LiteLLM wins conflicts. the build refuses to write if a spot check fails.
 
+## Calls
+the Calls view counts tool, MCP server and skill invocations from local session logs: Claude `tool_use` items (`mcp__server__tool`, `Skill`), Codex `function_call`/`custom_tool_call` entries plus SKILL.md read heuristics, and OpenCode tool parts from its SQLite ledger. calls are deduplicated by call id and cached per file signature in `calls-cache.json`. configured MCP servers and installed skills that were never invoked are flagged as zero-call.
+
 ## Shortcuts
-`Ctrl/Cmd+R` rescan, `Ctrl/Cmd+1..7` switch view. theme, mode, period and window geometry persist between launches.
+`Ctrl/Cmd+R` rescan, `Ctrl/Cmd+1..8` switch view. theme, mode, period and window geometry persist between launches.

@@ -57,6 +57,7 @@ export const ICON = {
   input: ArrowDown01Icon,
   output: ArrowUp01Icon,
   requests: FlashIcon,
+  bolt: BoltIcon,
   cost: DollarCircleIcon,
   cache: Database01Icon,
   avg: EnergyIcon,

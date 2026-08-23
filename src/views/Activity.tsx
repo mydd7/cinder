@@ -1,8 +1,10 @@
+import { useMemo } from "react";
 import { streaks } from "@/lib/aggregate";
 import { fmt } from "@/lib/format";
+import { provColor, provLabel } from "@/lib/providers";
 import type { Entry, Summary } from "@/lib/types";
 import { Panel } from "@/components/Primitives";
-import { Heatmap } from "@/components/charts/Heatmap";
+import { Heatmap, HeatLegend } from "@/components/charts/Heatmap";
 import { HourlyBars } from "@/components/charts/HourlyBars";
 
 function KV({ k, v }: { k: string; v: string }) {
@@ -28,11 +30,42 @@ export function Activity({ sum, full, entries, period }: { sum: Summary; full: S
   const heatDays = period ? Math.max(period, 1) : 371;
   const heatLabel = period ? `last ${period} days` : "last 12 months";
 
+  const bySource = useMemo(() => {
+    const map = new Map<string, Entry[]>();
+    for (const e of entries) {
+      let arr = map.get(e.source);
+      if (!arr) map.set(e.source, (arr = []));
+      arr.push(e);
+    }
+    return [...map.entries()].sort((a, b) => b[1].length - a[1].length);
+  }, [entries]);
+
   return (
     <div className="flex flex-col gap-3.5">
       <Panel title="Activity map" hint={`${heatLabel} · requests per day`}>
         <Heatmap entries={entries} days={heatDays} />
       </Panel>
+      {bySource.length > 1 && (
+        <Panel title="By provider" hint={`${heatLabel} · requests per day`}>
+          <div className="flex flex-col gap-4">
+            {bySource.map(([src, es]) => (
+              <div key={src} className="flex items-center gap-3.5">
+                <div className="flex w-[110px] shrink-0 items-center gap-2 text-[12px]">
+                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: provColor(src) }} />
+                  <span className="truncate">{provLabel(src)}</span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <Heatmap entries={es} days={heatDays} maxCell={14} showLegend={false} />
+                </div>
+                <span className="w-[52px] shrink-0 text-right text-[11.5px] text-muted-foreground tnum">
+                  {fmt.compact(es.length)}
+                </span>
+              </div>
+            ))}
+          </div>
+          <HeatLegend />
+        </Panel>
+      )}
       <div className="grid grid-cols-3 gap-3.5">
         <Panel title="Hourly rhythm" hint={periodLabel} className="col-span-2">
           <HourlyBars byHour={sum.byHour} />

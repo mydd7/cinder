@@ -6,17 +6,19 @@ import { filterPeriod, summarize } from "@/lib/aggregate";
 import { readPref, writePref } from "@/lib/prefs";
 import { applyTheme, DEFAULT_THEME, paletteOf, type Mode } from "@/lib/themes";
 import { useUsage } from "@/hooks/useUsage";
+import { useCalls } from "@/hooks/useCalls";
 import { TitleBar } from "@/components/TitleBar";
 import { NavBar, VIEW_ORDER } from "@/components/NavBar";
 import { Overview } from "@/views/Overview";
 import { Activity } from "@/views/Activity";
+import { Calls } from "@/views/Calls";
 import { Models } from "@/views/Models";
 import { Projects } from "@/views/Projects";
 import { Providers } from "@/views/Providers";
 import { Badges } from "@/views/Badges";
 import { Sessions } from "@/views/Sessions";
 
-export type ViewId = "overview" | "activity" | "models" | "projects" | "providers" | "badges" | "sessions";
+export type ViewId = "overview" | "activity" | "calls" | "models" | "projects" | "providers" | "badges" | "sessions";
 
 const PERIODS = [
   { d: 7, label: "7D" },
@@ -28,6 +30,7 @@ const PERIODS = [
 const TITLES: Record<ViewId, string> = {
   overview: "Overview",
   activity: "Activity",
+  calls: "Calls",
   models: "Models",
   projects: "Projects",
   providers: "Providers",
@@ -42,6 +45,7 @@ function initialPeriod(): number {
 
 export function App() {
   const { data, loading, reload } = useUsage();
+  const { data: callsData, reload: reloadCalls } = useCalls();
   const [view, setView] = useState<ViewId>("overview");
   const [period, setPeriod] = useState(initialPeriod);
   const [themeId, setThemeId] = useState(() => readPref("theme-id") || DEFAULT_THEME);
@@ -66,6 +70,7 @@ export function App() {
       if (e.key === "r" || e.key === "R") {
         e.preventDefault();
         void reload();
+        void reloadCalls();
         return;
       }
       const n = Number(e.key);
@@ -76,7 +81,7 @@ export function App() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [reload]);
+  }, [reload, reloadCalls]);
 
   const entries = data?.entries ?? [];
   const full = useMemo(() => summarize(entries), [entries]);
@@ -112,7 +117,10 @@ export function App() {
               </div>
             )}
             <button
-              onClick={() => void reload()}
+              onClick={() => {
+                void reload();
+                void reloadCalls();
+              }}
               disabled={loading}
               aria-label="Rescan logs"
               className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none"
@@ -138,6 +146,7 @@ export function App() {
           <div key={view} className="terax-tab-in">
             {view === "overview" && <Overview sum={sum} period={period} />}
             {view === "activity" && <Activity sum={sum} full={full} entries={periodEntries} period={period} />}
+            {view === "calls" && <Calls calls={callsData} />}
             {view === "models" && <Models sum={sum} period={period} />}
             {view === "projects" && <Projects sum={sum} period={period} />}
             {view === "sessions" && <Sessions entries={periodEntries} />}
