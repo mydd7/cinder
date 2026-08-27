@@ -1,9 +1,10 @@
 {
   "name": "cinder",
   "productName": "Cinder",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "private": true,
-  "description": "Local dashboard for AI coding token usage.",
+  "author": "Cinder",
+  "description": "Cinder",
   "main": "main.js",
   "scripts": {
     "build:web": "vite build",
@@ -44,6 +45,8 @@
   "build": {
     "appId": "app.local.cinder",
     "productName": "Cinder",
+    "copyright": "Copyright © 2026 Cinder",
+    "forceCodeSigning": false,
     "directories": {
       "output": "release"
     },
@@ -62,7 +65,8 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "icon/icon.ico"
+      "icon": "icon/icon.ico",
+      "publisherName": "Cinder"
     },
     "linux": {
       "target": "AppImage",
