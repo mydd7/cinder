@@ -65,8 +65,7 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "icon/icon.ico",
-      "publisherName": "Cinder"
+      "icon": "icon/icon.ico"
     },
     "linux": {
       "target": "AppImage",
