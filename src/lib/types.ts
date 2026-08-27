@@ -60,6 +60,42 @@ export interface CallsResult {
   installed?: InstalledInfo;
   scannedAt: string;
   error?: string;
+  cancelled?: boolean;
+}
+
+export interface TranscriptMessage {
+  role: string;
+  ts: string;
+  model: string;
+  text: string;
+  tools?: { name: string; detail: string }[];
+  input: number;
+  output: number;
+  cacheWrite: number;
+  cacheRead: number;
+  cost: number;
+}
+
+export interface TranscriptResult {
+  supported: boolean;
+  messages: TranscriptMessage[];
+  file?: string;
+  total?: number;
+  error?: string;
+  cancelled?: boolean;
+}
+
+export interface ScanProgress {
+  done: number;
+  total: number;
+  label: string;
+}
+
+export interface SnapshotInfo {
+  savedAt: string;
+  entries: number;
+  sources: number;
+  hasCalls: boolean;
 }
 
 export interface CollectResult {
@@ -69,6 +105,7 @@ export interface CollectResult {
   home: string;
   scannedAt: string;
   error?: string;
+  cancelled?: boolean;
 }
 
 export interface Totals {
@@ -123,6 +160,13 @@ declare global {
       setBackground: (bg: string) => void;
       collect: () => Promise<CollectResult>;
       calls: () => Promise<CallsResult>;
+      cancelScan: () => Promise<boolean>;
+      transcript: (source: string, session: string) => Promise<TranscriptResult>;
+      onScanProgress: (cb: (p: ScanProgress) => void) => void;
+      snapshotInfo: () => Promise<SnapshotInfo | null>;
+      snapshotUsage: () => Promise<CollectResult | null>;
+      snapshotCalls: () => Promise<CallsResult | null>;
+      clearSnapshot: () => Promise<void>;
       openExternal: (url: string) => Promise<void>;
     };
   }
