@@ -54,8 +54,8 @@ export function Models({ sum, period }: { sum: Summary; period: number }) {
                   <td className="border-b border-border px-3 py-2.5 text-right tnum">{fmt.compact(m.cacheWrite + m.cacheRead)}</td>
                   <td className="border-b border-border px-3 py-2.5 text-right tnum">{fmt.compact(m.tokens)}</td>
                   <td className="border-b border-border px-3 py-2.5 text-right tnum">{fmt.int(m.requests)}</td>
-                  <td className="border-b border-border px-3 py-2.5 text-right tnum">{fmt.usd(m.cost)}</td>
-                  <td className="border-b border-border px-3 py-2.5 text-right tnum">{fmt.pct(m.tokens / (t.tokens || 1))}</td>
+                  <td className="border-b border-border px-3 py-2.5 text-right tnum">{m.tokens ? fmt.usd(m.cost) : "—"}</td>
+                  <td className="border-b border-border px-3 py-2.5 text-right tnum">{m.tokens ? fmt.pct(m.tokens / (t.tokens || 1)) : "—"}</td>
                 </tr>
               ))}
             </tbody>

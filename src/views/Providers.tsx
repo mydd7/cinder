@@ -17,11 +17,13 @@ export function Providers({ full, entries }: { full: Summary; entries: Entry[] }
     }
     return [...map.entries()]
       .map(([name, es]) => ({ name, sum: summarize(es) }))
-      .sort((a, b) => b.sum.totals.tokens - a.sum.totals.tokens);
+      .sort((a, b) => b.sum.totals.tokens - a.sum.totals.tokens || b.sum.totals.requests - a.sum.totals.requests);
   }, [entries]);
 
-  const maxTok = full.sources.length ? full.sources[0].tokens : 1;
-  const maxCost = Math.max(1, ...full.sources.map((s) => s.cost));
+  const tokenSources = full.sources.filter((s) => s.tokens > 0);
+  const costSources = [...full.sources].filter((s) => s.cost > 0).sort((a, b) => b.cost - a.cost);
+  const maxTok = tokenSources.length ? tokenSources[0].tokens : 1;
+  const maxCost = Math.max(1, ...costSources.map((s) => s.cost));
 
   return (
     <div className="flex flex-col gap-3.5">
@@ -35,38 +37,46 @@ export function Providers({ full, entries }: { full: Summary; entries: Entry[] }
       <div className="grid grid-cols-2 gap-3.5">
         <Panel title="Token share" hint="by provider">
           <div className="flex flex-col gap-3.5">
-            {full.sources.map((s) => (
-              <BarRow
-                key={s.name}
-                name={provLabel(s.name)}
-                value={s.tokens}
-                max={maxTok}
-                color={color(s.name)}
-                amt={
-                  <>
-                    <b className="font-semibold text-foreground">{fmt.compact(s.tokens)}</b> · {fmt.pct(s.tokens / (t.tokens || 1))}
-                  </>
-                }
-              />
-            ))}
+            {tokenSources.length ? (
+              tokenSources.map((s) => (
+                <BarRow
+                  key={s.name}
+                  name={provLabel(s.name)}
+                  value={s.tokens}
+                  max={maxTok}
+                  color={color(s.name)}
+                  amt={
+                    <>
+                      <b className="font-semibold text-foreground">{fmt.compact(s.tokens)}</b> · {fmt.pct(s.tokens / (t.tokens || 1))}
+                    </>
+                  }
+                />
+              ))
+            ) : (
+              <div className="text-[12px] text-muted-foreground">No token counts in local logs.</div>
+            )}
           </div>
         </Panel>
         <Panel title="Cost share" hint="by provider">
           <div className="flex flex-col gap-3.5">
-            {[...full.sources].sort((a, b) => b.cost - a.cost).map((s) => (
-              <BarRow
-                key={s.name}
-                name={provLabel(s.name)}
-                value={s.cost}
-                max={maxCost}
-                color={color(s.name)}
-                amt={
-                  <>
-                    <b className="font-semibold text-foreground">{fmt.usd(s.cost)}</b> · {fmt.pct(s.cost / (t.cost || 1))}
-                  </>
-                }
-              />
-            ))}
+            {costSources.length ? (
+              costSources.map((s) => (
+                <BarRow
+                  key={s.name}
+                  name={provLabel(s.name)}
+                  value={s.cost}
+                  max={maxCost}
+                  color={color(s.name)}
+                  amt={
+                    <>
+                      <b className="font-semibold text-foreground">{fmt.usd(s.cost)}</b> · {fmt.pct(s.cost / (t.cost || 1))}
+                    </>
+                  }
+                />
+              ))
+            ) : (
+              <div className="text-[12px] text-muted-foreground">No cost data in local logs.</div>
+            )}
           </div>
         </Panel>
       </div>
@@ -74,14 +84,24 @@ export function Providers({ full, entries }: { full: Summary; entries: Entry[] }
       <div className="grid grid-cols-2 gap-3.5">
         {perProvider.map(({ name, sum }) => {
           const models = sum.models;
-          const maxM = models.length ? models[0].tokens : 1;
+          const byReqs = sum.totals.tokens === 0 && sum.totals.requests > 0;
+          const maxM = byReqs
+            ? Math.max(1, ...models.map((m) => m.requests))
+            : models.length
+              ? models[0].tokens
+              : 1;
+          const cursor = name === "cursor";
           return (
-            <Panel key={name} title={provLabel(name)} hint={`${sum.models.length} models · ${fmt.int(sum.sessions)} sessions`}>
+            <Panel
+              key={name}
+              title={provLabel(name)}
+              hint={cursor ? "requests only · no local tokens" : `${sum.models.length} models · ${fmt.int(sum.sessions)} sessions`}
+            >
               <div className="mb-3.5 grid grid-cols-3 gap-2">
                 {[
-                  { k: "Tokens", v: fmt.compact(sum.totals.tokens) },
+                  { k: "Tokens", v: cursor ? "—" : fmt.compact(sum.totals.tokens) },
                   { k: "Requests", v: fmt.int(sum.totals.requests) },
-                  { k: "Cost", v: fmt.usd(sum.totals.cost) }
+                  { k: "Cost", v: cursor ? "—" : fmt.usd(sum.totals.cost) }
                 ].map((x) => (
                   <div key={x.k} className="rounded-xl bg-muted/60 px-3 py-2">
                     <div className="text-[10.5px] text-muted-foreground">{x.k}</div>
@@ -94,10 +114,10 @@ export function Providers({ full, entries }: { full: Summary; entries: Entry[] }
                   <BarRow
                     key={m.name}
                     name={fmt.modelShort(m.name)}
-                    value={m.tokens}
+                    value={byReqs ? m.requests : m.tokens}
                     max={maxM}
                     color={i === 0 ? color(name) : "var(--muted-foreground)"}
-                    amt={<b className="font-semibold text-foreground">{fmt.compact(m.tokens)}</b>}
+                    amt={<b className="font-semibold text-foreground">{byReqs ? fmt.int(m.requests) : fmt.compact(m.tokens)}</b>}
                   />
                 ))}
               </div>

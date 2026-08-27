@@ -85,7 +85,7 @@ export function App() {
 
   const entries = data?.entries ?? [];
   const full = useMemo(() => summarize(entries), [entries]);
-  const periodic = view === "overview" || view === "activity" || view === "models" || view === "projects";
+  const periodic = view === "overview" || view === "activity" || view === "models" || view === "projects" || view === "sessions";
   const periodEntries = useMemo(() => (periodic ? filterPeriod(entries, period) : entries), [entries, period, periodic]);
   const sum = useMemo(() => (periodic ? summarize(periodEntries) : full), [periodEntries, periodic, full]);
 
@@ -139,7 +139,9 @@ export function App() {
           <div className="grid h-[60vh] place-items-center text-center text-muted-foreground">
             <div>
               <div className="mb-1.5 text-[15px] font-semibold text-foreground">No usage data found</div>
-              {data?.error ? "Error: " + data.error : "Scanned Claude, Codex, OpenCode and 12 more tools. Use one, then press refresh."}
+              {data?.error
+                ? "Error: " + data.error
+                : `Scanned ${data?.catalog?.length ?? 0} local tools. Use one, then press refresh.`}
             </div>
           </div>
         ) : (

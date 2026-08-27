@@ -3,6 +3,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { ICON } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 import { fmt } from "@/lib/format";
+import { provColor, provLabel } from "@/lib/providers";
 import type { Entry } from "@/lib/types";
 import { Panel, StatCard } from "@/components/Primitives";
 import { useMeasure } from "@/hooks/useMeasure";
@@ -234,15 +235,17 @@ export function Sessions({ entries }: { entries: Entry[] }) {
               >
                 <div className="flex w-full items-center justify-between">
                   <span className="truncate text-[13.5px] font-semibold text-foreground">{s.project || "untitled"}</span>
-                  <span className="text-[12px] font-semibold text-brand">{fmt.usd(s.cost)}</span>
+                  <span className="text-[12px] font-semibold text-brand">{s.tokens ? fmt.usd(s.cost) : "—"}</span>
                 </div>
                 <div className="truncate font-mono text-[11px] opacity-85">{s.id}</div>
                 <div className="mt-1.5 flex w-full items-center justify-between text-[11.5px] font-medium">
-                  <span className="flex items-center gap-1 rounded bg-muted/60 px-1.5 py-0.5 text-[10px] font-semibold text-foreground">
-                    {s.source}
+                  <span className="flex items-center gap-1.5 rounded bg-muted/60 px-1.5 py-0.5 text-[10px] font-semibold text-foreground">
+                    <span className="h-1.5 w-1.5 rounded-full" style={{ background: provColor(s.source) }} />
+                    {provLabel(s.source)}
                   </span>
                   <span>
-                    {s.requests} {s.requests === 1 ? "turn" : "turns"} · {fmt.compact(s.tokens)}
+                    {s.requests} {s.requests === 1 ? "turn" : "turns"}
+                    {s.tokens ? ` · ${fmt.compact(s.tokens)}` : ""}
                   </span>
                 </div>
                 <div className="mt-1 text-[10.5px] text-muted-foreground opacity-80">
@@ -268,7 +271,7 @@ export function Sessions({ entries }: { entries: Entry[] }) {
           </div>
 
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <StatCard icon="cost" label="Cost" value={fmt.usd(active.cost)} sub="estimated spend" />
+            <StatCard icon="cost" label="Cost" value={active.tokens ? fmt.usd(active.cost) : "—"} sub={active.tokens ? "estimated spend" : "no local tokens"} />
             <StatCard icon="tokens" label="Tokens" value={fmt.compact(active.tokens)} sub="total tokens" />
             <StatCard icon="sessions" label="Turns" value={fmt.int(active.requests)} sub="API requests" />
             <StatCard icon="models" label="Model" value={fmt.modelShort(active.model)} sub="last used" />
@@ -309,7 +312,7 @@ export function Sessions({ entries }: { entries: Entry[] }) {
                       <td className="py-2.5 text-right font-mono tnum text-muted-foreground">
                         {e.cacheRead > 0 ? fmt.int(e.cacheRead) : "-"}
                       </td>
-                      <td className="py-2.5 text-right font-mono tnum font-semibold text-brand">{fmt.usd(e.cost)}</td>
+                      <td className="py-2.5 text-right font-mono tnum font-semibold text-brand">{e.input + e.output + e.cacheWrite + e.cacheRead ? fmt.usd(e.cost) : "—"}</td>
                     </tr>
                   ))}
                 </tbody>

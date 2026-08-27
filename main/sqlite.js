@@ -1,8 +1,36 @@
 const { execFile } = require("child_process");
+const fs = require("fs");
+const os = require("os");
 const path = require("path");
 
 const READER = path.join(__dirname, "sqlite-reader.js");
 const UNPACKED = READER.replace(`app.asar${path.sep}`, `app.asar.unpacked${path.sep}`);
+
+function copyLiveDb(dbPath) {
+  if (!dbPath || !fs.existsSync(dbPath)) return null;
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cinder-db-"));
+  const dest = path.join(dir, "copy.db");
+  try {
+    fs.copyFileSync(dbPath, dest);
+    for (const ext of ["-wal", "-shm"]) {
+      const side = dbPath + ext;
+      if (fs.existsSync(side)) fs.copyFileSync(side, dest + ext);
+    }
+    return {
+      path: dest,
+      cleanup() {
+        try {
+          fs.rmSync(dir, { recursive: true, force: true });
+        } catch {}
+      }
+    };
+  } catch {
+    try {
+      fs.rmSync(dir, { recursive: true, force: true });
+    } catch {}
+    return null;
+  }
+}
 
 function run(cmd, reader, dbPath, sql, extraEnv) {
   return new Promise((resolve) => {
@@ -12,7 +40,7 @@ function run(cmd, reader, dbPath, sql, extraEnv) {
       {
         env: { ...process.env, ...extraEnv },
         maxBuffer: 512 * 1024 * 1024,
-        timeout: 30000,
+        timeout: 60000,
         windowsHide: true
       },
       (err, stdout) => {
@@ -34,4 +62,14 @@ async function queryAll(dbPath, sql) {
   return run("node", UNPACKED, dbPath, sql, {});
 }
 
-module.exports = { queryAll, available: () => true };
+async function queryLive(dbPath, sql) {
+  const copy = copyLiveDb(dbPath);
+  if (!copy) return queryAll(dbPath, sql);
+  try {
+    return await queryAll(copy.path, sql);
+  } finally {
+    copy.cleanup();
+  }
+}
+
+module.exports = { queryAll, queryLive, copyLiveDb, available: () => true };

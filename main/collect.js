@@ -16,6 +16,7 @@ const SOURCES = [
   require("./sources/openclaw"),
   require("./sources/pi"),
   require("./sources/copilot"),
+  require("./sources/cursor"),
   require("./sources/antigravity")
 ];
 

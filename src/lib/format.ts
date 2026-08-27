@@ -41,6 +41,12 @@ export const fmt = {
   },
   modelShort(m: string): string {
     if (!m) return "unknown";
-    return m.replace(/^claude-/, "").replace(/-\d{8}$/, "").replace(/^anthropic\//, "");
+    if (m === "cursor-auto" || m === "default") return "Auto";
+    return m
+      .replace(/^claude-/, "")
+      .replace(/-\d{8}$/, "")
+      .replace(/^anthropic\//, "")
+      .replace(/-high-thinking$/, "")
+      .replace(/-thinking$/, "");
   }
 };

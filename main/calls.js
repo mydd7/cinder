@@ -2,7 +2,8 @@ const fs = require("fs");
 const readline = require("readline");
 const path = require("path");
 const { walk, mapLimit, envDirs, HOME } = require("./normalize");
-const { queryAll } = require("./sqlite");
+const { queryAll, queryLive } = require("./sqlite");
+const cursorSrc = require("./sources/cursor");
 
 const SKILL_RE = /[/\\]skills[/\\]([^"'`\s\\/:*?<>|]+)/i;
 
@@ -335,6 +336,70 @@ function jsonBlockKeys(raw, key) {
   return keys;
 }
 
+const CURSOR_MCP_TOOLS = new Set(["CallMcpTool", "call_mcp_tool"]);
+
+async function collectCursor(scan) {
+  const files = cursorSrc.transcriptFiles();
+  await mapLimit(files, 8, (file) =>
+    scan.file("cursor", file, async (out) => {
+      let mtime = 0;
+      try {
+        mtime = fs.statSync(file).mtimeMs;
+      } catch {}
+      await readJsonlStream(file, (o) => {
+        const msg = o && o.message;
+        const content = msg && msg.content;
+        if (!Array.isArray(content)) return;
+        for (const c of content) {
+          if (!c || c.type !== "tool_use" || !c.name) continue;
+          const name = String(c.name);
+          const id = c.id != null ? String(c.id) : null;
+          const input = c.input && typeof c.input === "object" ? c.input : {};
+          if (CURSOR_MCP_TOOLS.has(name)) {
+            const server = String(input.server || input.serverName || input.mcpServer || "unknown");
+            const tool = String(input.toolName || input.tool || input.name || name);
+            out.add({ i: id, t: mtime, k: "mcp", s: server, n: tool });
+          } else {
+            out.add({ i: id, t: mtime, k: "tool", n: cursorSrc.toolName(name) });
+          }
+        }
+      });
+    })
+  );
+
+  for (const user of cursorSrc.userDirs()) {
+    const db = path.join(user, "globalStorage", "state.vscdb");
+    if (!fs.existsSync(db)) continue;
+    await scan.file("cursor", db, async (out) => {
+      const rows = await queryLive(db, cursorSrc.BUBBLE_SQL);
+      if (!rows) throw new Error("sqlite unavailable");
+      for (const r of rows) {
+        if (Number(r.type) !== 2 || !r.toolName) continue;
+        let ts = Date.parse(r.createdAt);
+        if (isNaN(ts)) ts = Number(r.createdAt);
+        if (!isFinite(ts) || ts <= 0) ts = 0;
+        out.add({
+          i: r.toolId != null ? String(r.toolId) : r.key,
+          t: ts,
+          k: "tool",
+          n: cursorSrc.toolName(r.toolName)
+        });
+      }
+    });
+  }
+}
+
+function cursorMcpNames() {
+  const p = path.join(HOME, ".cursor", "mcp.json");
+  if (!fs.existsSync(p)) return [];
+  try {
+    const cfg = JSON.parse(fs.readFileSync(p, "utf8"));
+    return Object.keys(cfg.mcpServers || {}).sort();
+  } catch {
+    return [];
+  }
+}
+
 function opencodeMcpNames() {
   const roots = [
     process.env.XDG_CONFIG_HOME ? path.join(process.env.XDG_CONFIG_HOME, "opencode") : null,
@@ -427,7 +492,8 @@ function installedInfo() {
     mcp: {
       claude: [...claudeMcp].sort(),
       codex: [...codexMcp].sort(),
-      opencode: opencodeMcpNames().sort()
+      opencode: opencodeMcpNames().sort(),
+      cursor: cursorMcpNames()
     }
   };
 }
@@ -436,7 +502,7 @@ async function collectCalls(cacheDir) {
   const scan = new CallScan();
   scan.loadCache(cacheDir);
   const mcpNames = opencodeMcpNames();
-  await Promise.all([collectClaude(scan), collectCodex(scan), collectOpenCode(scan, mcpNames)]);
+  await Promise.all([collectClaude(scan), collectCodex(scan), collectOpenCode(scan, mcpNames), collectCursor(scan)]);
   scan.saveCache();
   return { sources: scan.result(), installed: installedInfo(), scannedAt: new Date().toISOString() };
 }

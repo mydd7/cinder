@@ -15,6 +15,7 @@ const LABEL: Record<string, string> = {
   openclaw: "OpenClaw",
   pi: "Pi",
   copilot: "GitHub Copilot",
+  cursor: "Cursor",
   antigravity: "Antigravity",
   kilocode: "Kilo Code",
   openrouter: "OpenRouter"
@@ -37,7 +38,9 @@ const COLOR: Record<string, string> = {
   openclaw: "var(--data-3)",
   pi: "var(--data-5)",
   copilot: "var(--muted-foreground)",
-  antigravity: "var(--data-1)"
+  cursor: "var(--brand-2)",
+  antigravity: "var(--data-1)",
+  kilocode: "var(--data-4)"
 };
 
 export const provLabel = (s: string) => LABEL[s] || s;

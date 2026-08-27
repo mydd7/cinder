@@ -89,7 +89,8 @@ function toIso(v) {
 function envDirs(name) {
   const raw = process.env[name];
   if (!raw) return [];
-  return raw.split(/[,;:]/).map((s) => s.trim()).filter(Boolean);
+  const sep = process.platform === "win32" ? /[,;]/ : /[,;:]/;
+  return raw.split(sep).map((s) => s.trim()).filter(Boolean);
 }
 
 class Collector {
@@ -132,7 +133,11 @@ class Collector {
     } catch {
       return;
     }
-    const sig = st.mtimeMs + ":" + st.size;
+    let sig = st.mtimeMs + ":" + st.size;
+    try {
+      const wal = fs.statSync(key + "-wal");
+      sig += ":" + wal.mtimeMs + ":" + wal.size;
+    } catch {}
     const cached = this.cacheIn[key];
     let raws;
     if (cached && cached.sig === sig) {
@@ -174,7 +179,7 @@ class Collector {
     };
     const reasoning = num(e.reasoning);
     usage.output += reasoning;
-    if (usage.input + usage.output + usage.cacheWrite + usage.cacheRead === 0) return false;
+    if (usage.input + usage.output + usage.cacheWrite + usage.cacheRead === 0 && !e.allowEmpty) return false;
     if (e.dedup) {
       const key = e.source + ":" + e.dedup;
       const prev = this.seen.get(key);

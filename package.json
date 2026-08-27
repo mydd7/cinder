@@ -1,7 +1,7 @@
 {
   "name": "cinder",
   "productName": "Cinder",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "private": true,
   "description": "Local dashboard for AI coding token usage.",
   "main": "main.js",
@@ -74,7 +74,8 @@
       "icon": "icon/icon.png"
     },
     "nsis": {
-      "shortcutName": "Cinder"
+      "shortcutName": "Cinder",
+      "artifactName": "Cinder-Setup-${version}.${ext}"
     }
   }
 }

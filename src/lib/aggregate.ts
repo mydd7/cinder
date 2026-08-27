@@ -71,7 +71,7 @@ export function summarize(entries: Entry[]): Summary {
   }
 
   const toBuckets = (m: Map<string, Totals>): Bucket[] =>
-    [...m.entries()].map(([name, v]) => ({ name, ...v })).sort((a, b) => b.tokens - a.tokens);
+    [...m.entries()].map(([name, v]) => ({ name, ...v })).sort((a, b) => b.tokens - a.tokens || b.requests - a.requests);
 
   const dominantSource = (model: string): string | undefined => {
     const ms = modelSource.get(model);
@@ -81,7 +81,7 @@ export function summarize(entries: Entry[]): Summary {
     for (const [s, t] of ms) if (t > max) ((max = t), (best = s));
     return best || undefined;
   };
-  const models = [...byModel.entries()].map(([name, v]) => ({ name, source: dominantSource(name), ...v })).sort((a, b) => b.tokens - a.tokens);
+  const models = [...byModel.entries()].map(([name, v]) => ({ name, source: dominantSource(name), ...v })).sort((a, b) => b.tokens - a.tokens || b.requests - a.requests);
 
   return {
     totals,
