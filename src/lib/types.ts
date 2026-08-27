@@ -60,6 +60,20 @@ export interface CallsResult {
   installed?: InstalledInfo;
   scannedAt: string;
   error?: string;
+  cancelled?: boolean;
+}
+
+export interface ScanProgress {
+  done: number;
+  total: number;
+  label: string;
+}
+
+export interface SnapshotInfo {
+  savedAt: string;
+  entries: number;
+  sources: number;
+  hasCalls: boolean;
 }
 
 export interface CollectResult {
@@ -69,6 +83,7 @@ export interface CollectResult {
   home: string;
   scannedAt: string;
   error?: string;
+  cancelled?: boolean;
 }
 
 export interface Totals {
@@ -123,6 +138,12 @@ declare global {
       setBackground: (bg: string) => void;
       collect: () => Promise<CollectResult>;
       calls: () => Promise<CallsResult>;
+      cancelScan: () => Promise<boolean>;
+      onScanProgress: (cb: (p: ScanProgress) => void) => void;
+      snapshotInfo: () => Promise<SnapshotInfo | null>;
+      snapshotUsage: () => Promise<CollectResult | null>;
+      snapshotCalls: () => Promise<CallsResult | null>;
+      clearSnapshot: () => Promise<void>;
       openExternal: (url: string) => Promise<void>;
     };
   }

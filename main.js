@@ -1,8 +1,7 @@
-const { app, BrowserWindow, Menu, ipcMain, screen, shell } = require("electron");
+const { app, BrowserWindow, Menu, ipcMain, screen, shell, utilityProcess } = require("electron");
 const fs = require("fs");
 const path = require("path");
-const { collect } = require("./main/collect");
-const { collectCalls } = require("./main/calls");
+const { readSnapshot, snapshotInfo, writeSnapshot, clearSnapshot } = require("./main/snapshot");
 
 const ICON = path.join(__dirname, "icon", process.platform === "win32" ? "icon.ico" : "icon.png");
 const DEFAULT_BG = "#1f1e1d";
@@ -147,29 +146,110 @@ ipcMain.on("theme:background", (_e, bg) => {
   }
 });
 
+let nextJob = 1;
+
+function createPool(serviceName) {
+  const pool = { proc: null, jobs: new Map() };
+
+  pool.settleAll = (value) => {
+    for (const job of pool.jobs.values()) job.resolve(value);
+    pool.jobs.clear();
+  };
+
+  pool.ensure = () => {
+    if (pool.proc) return pool.proc;
+    pool.proc = utilityProcess.fork(path.join(__dirname, "main", "scan-worker.js"), [], { serviceName });
+    pool.proc.on("message", (msg) => {
+      if (!msg || typeof msg !== "object") return;
+      const job = pool.jobs.get(msg.id);
+      if (!job) return;
+      if (msg.type === "progress") {
+        if (win && !win.isDestroyed()) win.webContents.send("usage:progress", msg.progress);
+        return;
+      }
+      pool.jobs.delete(msg.id);
+      if (msg.type === "done") job.resolve(msg.result);
+      else job.resolve({ ...job.fallback, error: msg.message });
+    });
+    pool.proc.on("exit", () => {
+      pool.proc = null;
+      pool.settleAll({ cancelled: true });
+    });
+    return pool.proc;
+  };
+
+  pool.run = (payload, fallback) =>
+    new Promise((resolve) => {
+      const id = nextJob++;
+      pool.jobs.set(id, { resolve, fallback });
+      pool.ensure().postMessage({ id, ...payload });
+    });
+
+  pool.stop = () => {
+    if (!pool.proc) return false;
+    const proc = pool.proc;
+    pool.proc = null;
+    proc.kill();
+    pool.settleAll({ cancelled: true });
+    return true;
+  };
+
+  return pool;
+}
+
+const scanPool = createPool("cinder-scan");
+
+function runScan(kind, cacheDir, fallback) {
+  return scanPool.run({ kind, cacheDir }, fallback);
+}
+
+function stopWorker() {
+  return scanPool.stop();
+}
+
 let scanning = null;
 ipcMain.handle("usage:collect", () => {
   if (scanning) return scanning;
-  scanning = collect(app.getPath("userData"))
-    .catch((err) => ({ entries: [], sources: [], error: String(err && err.message ? err.message : err) }))
+  const dir = app.getPath("userData");
+  scanning = runScan("collect", dir, { entries: [], sources: [] })
+    .then((res) => {
+      if (res && !res.cancelled && !res.error) writeSnapshot(dir, { usage: res });
+      return res;
+    })
     .finally(() => {
       scanning = null;
     });
   return scanning;
 });
 
+ipcMain.handle("usage:cancel", () => stopWorker());
+
+ipcMain.handle("snapshot:info", () => snapshotInfo(app.getPath("userData")));
+ipcMain.handle("snapshot:usage", () => {
+  const snap = readSnapshot(app.getPath("userData"));
+  return snap && snap.usage ? snap.usage : null;
+});
+ipcMain.handle("snapshot:calls", () => {
+  const snap = readSnapshot(app.getPath("userData"));
+  return snap && snap.calls ? snap.calls : null;
+});
+ipcMain.handle("snapshot:clear", () => clearSnapshot(app.getPath("userData")));
+
 ipcMain.handle("app:open-external", (_e, url) => openExternal(url));
 
 let callsScanning = null;
 ipcMain.handle("usage:calls", () => {
   if (callsScanning) return callsScanning;
-  callsScanning = collectCalls(app.getPath("userData"))
-    .catch((err) => ({
-      sources: {},
-      installed: { skills: [], mcp: {} },
-      scannedAt: new Date().toISOString(),
-      error: String(err && err.message ? err.message : err)
-    }))
+  const dir = app.getPath("userData");
+  callsScanning = runScan("calls", dir, {
+    sources: {},
+    installed: { skills: [], mcp: {} },
+    scannedAt: new Date().toISOString()
+  })
+    .then((res) => {
+      if (res && !res.cancelled && !res.error) writeSnapshot(dir, { calls: res });
+      return res;
+    })
     .finally(() => {
       callsScanning = null;
     });
@@ -193,6 +273,10 @@ if (!app.requestSingleInstanceLock()) {
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });
+  });
+
+  app.on("will-quit", () => {
+    scanPool.stop();
   });
 
   app.on("window-all-closed", () => {

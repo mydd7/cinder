@@ -15,7 +15,6 @@ export function Overview({ sum, period }: { sum: Summary; period: number }) {
   const models = sum.models.slice(0, 6);
   const maxModel = models.length ? models[0].tokens : 1;
   const series = daySeries(sum.byDay, period);
-  const hasCursor = sum.sources.some((s) => s.name === "cursor");
 
   return (
     <div className="flex flex-col gap-3.5">
@@ -26,7 +25,7 @@ export function Overview({ sum, period }: { sum: Summary; period: number }) {
         <StatCard icon="requests" label="Requests" value={fmt.int(t.requests)} sub={`${fmt.int(sum.sessions)} sessions`} />
       </div>
       <div className="grid grid-cols-4 gap-3.5">
-        <StatCard icon="cost" label="Est. cost" value={fmt.usd(t.cost)} sub={hasCursor ? `${periodLabel} · Cursor has no local tokens` : periodLabel} />
+        <StatCard icon="cost" label="Est. cost" value={fmt.usd(t.cost)} sub={periodLabel} />
         <StatCard icon="cache" label="Cache reads" value={fmt.compact(t.cacheRead)} sub={<>{fmt.pct(cacheShare)} of all tokens</>} />
         <StatCard icon="avg" label="Avg / request" value={fmt.compact(avg)} sub="tokens per call" />
         <StatCard icon="calendar" label="Active days" value={fmt.int(sum.activeDays)} sub="days with usage" />

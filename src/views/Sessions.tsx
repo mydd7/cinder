@@ -130,10 +130,21 @@ function ContextGrowthChart({ session }: { session: SessionInfo }) {
   );
 }
 
+const SORTS = [
+  { id: "recent", label: "Recent", compare: (a: SessionInfo, b: SessionInfo) => b.end - a.end },
+  { id: "cost", label: "Cost", compare: (a: SessionInfo, b: SessionInfo) => b.cost - a.cost },
+  { id: "tokens", label: "Tokens", compare: (a: SessionInfo, b: SessionInfo) => b.tokens - a.tokens },
+  { id: "turns", label: "Turns", compare: (a: SessionInfo, b: SessionInfo) => b.requests - a.requests },
+  { id: "project", label: "Project", compare: (a: SessionInfo, b: SessionInfo) => a.project.localeCompare(b.project) }
+] as const;
+
+type SortId = (typeof SORTS)[number]["id"];
+
 export function Sessions({ entries }: { entries: Entry[] }) {
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [sort, setSort] = useState<SortId>("recent");
 
   const sessions = useMemo(() => {
     const map = new Map<string, SessionInfo>();
@@ -179,14 +190,17 @@ export function Sessions({ entries }: { entries: Entry[] }) {
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) return sessions;
-    return sessions.filter(
-      (s) =>
-        s.id.toLowerCase().includes(query) ||
-        s.project.toLowerCase().includes(query) ||
-        s.model.toLowerCase().includes(query)
-    );
-  }, [sessions, search]);
+    const list = query
+      ? sessions.filter(
+          (s) =>
+            s.id.toLowerCase().includes(query) ||
+            s.project.toLowerCase().includes(query) ||
+            s.model.toLowerCase().includes(query)
+        )
+      : sessions;
+    const compare = (SORTS.find((s) => s.id === sort) ?? SORTS[0]).compare;
+    return [...list].sort(compare);
+  }, [sessions, search, sort]);
 
   const visible = filtered.slice(0, LIST_CAP);
 
@@ -217,6 +231,21 @@ export function Sessions({ entries }: { entries: Entry[] }) {
             size={14}
             className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-muted-foreground"
           />
+        </div>
+
+        <div className="grid grid-cols-5 rounded-xl bg-card p-[3px] ring-1 ring-foreground/10">
+          {SORTS.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => setSort(s.id)}
+              className={cn(
+                "rounded-lg px-1 py-1 text-center text-[11px] font-medium transition-colors",
+                s.id === sort ? "bg-foreground/[0.07] text-foreground" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {s.label}
+            </button>
+          ))}
         </div>
 
         <div className="flex max-h-[70vh] flex-col gap-1.5 overflow-y-auto pr-1">

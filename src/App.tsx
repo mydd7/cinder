@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { SnapshotInfo } from "@/lib/types";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ICON } from "@/lib/icons";
 import { cn } from "@/lib/utils";
@@ -9,6 +10,7 @@ import { useUsage } from "@/hooks/useUsage";
 import { useCalls } from "@/hooks/useCalls";
 import { TitleBar } from "@/components/TitleBar";
 import { NavBar, VIEW_ORDER } from "@/components/NavBar";
+import { ScanGate } from "@/components/ScanGate";
 import { Overview } from "@/views/Overview";
 import { Activity } from "@/views/Activity";
 import { Calls } from "@/views/Calls";
@@ -44,12 +46,58 @@ function initialPeriod(): number {
 }
 
 export function App() {
-  const { data, loading, reload } = useUsage();
-  const { data: callsData, reload: reloadCalls } = useCalls();
+  const { data, loading, progress, reload, restore, prefetch, cancel } = useUsage();
+  const { data: callsData, loading: callsLoading, reload: reloadCalls, restore: restoreCalls } = useCalls();
+  const [boot, setBoot] = useState<"checking" | "gate" | "ready">("checking");
+  const [snapshot, setSnapshot] = useState<SnapshotInfo | null>(null);
   const [view, setView] = useState<ViewId>("overview");
   const [period, setPeriod] = useState(initialPeriod);
   const [themeId, setThemeId] = useState(() => readPref("theme-id") || DEFAULT_THEME);
   const [mode, setMode] = useState<Mode>(() => (readPref("mode") === "light" ? "light" : "dark"));
+
+  const startScan = useCallback(async () => {
+    setBoot("ready");
+    setSnapshot(null);
+    await window.cinder?.clearSnapshot().catch(() => {});
+    const done = await reload();
+    if (!done) {
+      setBoot("gate");
+      return;
+    }
+    void reloadCalls();
+  }, [reload, reloadCalls]);
+
+  const openSnapshot = useCallback(async () => {
+    const ok = await restore();
+    if (!ok) {
+      void startScan();
+      return;
+    }
+    await restoreCalls();
+    setBoot("ready");
+  }, [restore, restoreCalls, startScan]);
+
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      const info = await window.cinder?.snapshotInfo().catch(() => null);
+      if (!alive) return;
+      if (info && info.entries > 0) {
+        setSnapshot(info);
+        setBoot("gate");
+        prefetch();
+      } else {
+        void startScan();
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [startScan, prefetch]);
+
+  useEffect(() => {
+    if (view === "calls" && boot === "ready" && !callsData && !callsLoading) void reloadCalls();
+  }, [view, boot, callsData, callsLoading, reloadCalls]);
 
   useEffect(() => {
     applyTheme(themeId, mode);
@@ -69,8 +117,7 @@ export function App() {
       if (!e.ctrlKey && !e.metaKey) return;
       if (e.key === "r" || e.key === "R") {
         e.preventDefault();
-        void reload();
-        void reloadCalls();
+        void startScan();
         return;
       }
       const n = Number(e.key);
@@ -81,7 +128,7 @@ export function App() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [reload, reloadCalls]);
+  }, [startScan]);
 
   const entries = data?.entries ?? [];
   const full = useMemo(() => summarize(entries), [entries]);
@@ -99,7 +146,7 @@ export function App() {
       <main className="min-h-0 overflow-y-auto bg-background px-6 py-5 pb-10">
         <div className="mb-[18px] flex items-center justify-between gap-4">
           <h1 className="text-[19px] font-[620] tracking-[-0.025em]">{TITLES[view]}</h1>
-          <div className="flex items-center gap-2">
+          <div className={cn("flex items-center gap-2", boot !== "ready" && "hidden")}>
             {periodic && hasData && (
               <div className="flex rounded-md bg-card p-[3px] ring-1 ring-foreground/10">
                 {PERIODS.map((p) => (
@@ -117,10 +164,7 @@ export function App() {
               </div>
             )}
             <button
-              onClick={() => {
-                void reload();
-                void reloadCalls();
-              }}
+              onClick={() => void startScan()}
               disabled={loading}
               aria-label="Rescan logs"
               className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none"
@@ -130,10 +174,30 @@ export function App() {
           </div>
         </div>
 
-        {loading && !data ? (
-          <div className="grid h-[62vh] place-items-center gap-3.5 text-muted-foreground">
-            <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-muted border-t-[var(--brand)]" />
-            <div>Scanning local usage logs…</div>
+        {boot !== "ready" ? (
+          boot === "gate" ? (
+            <ScanGate info={snapshot} onRestore={() => void openSnapshot()} onScan={() => void startScan()} />
+          ) : null
+        ) : loading && !data ? (
+          <div className="grid h-[62vh] place-items-center">
+            <div className="w-[320px]">
+              <div className="mb-2.5 flex items-baseline justify-between text-[12.5px] text-muted-foreground">
+                <span>{progress.label ? `Scanning ${progress.label}…` : "Scanning local usage logs…"}</span>
+                <span className="tnum">{progress.total ? Math.round((progress.done / progress.total) * 100) : 0}%</span>
+              </div>
+              <div className="h-[6px] overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-[var(--brand)] transition-[width] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                  style={{ width: `${progress.total ? (progress.done / progress.total) * 100 : 0}%` }}
+                />
+              </div>
+              <button
+                onClick={() => void cancel()}
+                className="mt-3.5 w-full rounded-xl px-4 py-2 text-[12.5px] font-medium text-muted-foreground ring-1 ring-foreground/10 transition-colors hover:bg-accent hover:text-foreground"
+              >
+                Cancel scan
+              </button>
+            </div>
           </div>
         ) : !hasData ? (
           <div className="grid h-[60vh] place-items-center text-center text-muted-foreground">

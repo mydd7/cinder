@@ -9,5 +9,11 @@ contextBridge.exposeInMainWorld("cinder", {
   setBackground: (bg) => ipcRenderer.send("theme:background", bg),
   collect: () => ipcRenderer.invoke("usage:collect"),
   calls: () => ipcRenderer.invoke("usage:calls"),
+  cancelScan: () => ipcRenderer.invoke("usage:cancel"),
+  onScanProgress: (cb) => ipcRenderer.on("usage:progress", (_e, p) => cb(p)),
+  snapshotInfo: () => ipcRenderer.invoke("snapshot:info"),
+  snapshotUsage: () => ipcRenderer.invoke("snapshot:usage"),
+  snapshotCalls: () => ipcRenderer.invoke("snapshot:calls"),
+  clearSnapshot: () => ipcRenderer.invoke("snapshot:clear"),
   openExternal: (url) => ipcRenderer.invoke("app:open-external", url)
 });
