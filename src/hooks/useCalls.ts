@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import type { CallsResult } from "@/lib/types";
 
 const EMPTY: CallsResult = { sources: {}, installed: { skills: [], mcp: {} }, scannedAt: "" };
 
 export function useCalls() {
   const [data, setData] = useState<CallsResult | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const reload = useCallback(async () => {
     const api = window.cinder;
@@ -16,7 +16,8 @@ export function useCalls() {
     }
     setLoading(true);
     try {
-      setData(await api.calls());
+      const res = await api.calls();
+      if (!res.cancelled) setData(res);
     } catch (err) {
       setData({ ...EMPTY, error: String(err) });
     } finally {
@@ -24,9 +25,18 @@ export function useCalls() {
     }
   }, []);
 
-  useEffect(() => {
-    void reload();
-  }, [reload]);
+  const restore = useCallback(async () => {
+    const api = window.cinder;
+    if (!api) return false;
+    try {
+      const cached = await api.snapshotCalls();
+      if (!cached) return false;
+      setData(cached);
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
 
-  return { data, loading, reload };
+  return { data, loading, reload, restore };
 }

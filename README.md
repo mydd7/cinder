@@ -31,5 +31,8 @@ cost is computed per model from a bundled `pricing-data.json` snapshot, keyed by
 ## Calls
 the Calls view counts tool, MCP server and skill invocations from local session logs: Claude `tool_use` items (`mcp__server__tool`, `Skill`), Codex `function_call`/`custom_tool_call` entries plus SKILL.md read heuristics, OpenCode tool parts from its SQLite ledger, and Cursor agent transcripts plus composer bubbles. calls are deduplicated by call id and cached per file signature in `calls-cache.json`. configured MCP servers and installed skills that were never invoked are flagged as zero-call.
 
+## Scan cache
+each completed scan is written to `scan-snapshot.json` in the app data directory. on launch, if a snapshot exists, Cinder asks whether to open the last scan or run a new one. starting a new scan deletes the old snapshot first, then writes a fresh one when the scan completes.
+
 ## Shortcuts
 `Ctrl/Cmd+R` rescan, `Ctrl/Cmd+1..8` switch view. theme, mode, period and window geometry persist between launches.
