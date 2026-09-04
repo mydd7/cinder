@@ -1,9 +1,13 @@
 const fs = require("fs");
-const readline = require("readline");
 const path = require("path");
-const { walk, mapLimit, envDirs, HOME } = require("./normalize");
+const { walk, readJsonl, mapLimit, envDirs, HOME } = require("./normalize");
+const { writeJsonFile } = require("./jsonfile");
 const { queryAll, queryLive } = require("./sqlite");
 const cursorSrc = require("./sources/cursor");
+
+const CLAUDE_KEEP = (line) => line.includes('"tool_use"');
+const CODEX_KEEP = (line) =>
+  line.includes('"function_call"') || line.includes('"custom_tool_call"') || line.includes('"McpToolCall"');
 
 const SKILL_RE = /[/\\]skills[/\\]([^"'`\s\\/:*?<>|]+)/i;
 
@@ -16,30 +20,6 @@ function dayKeyOf(ms) {
     "-" +
     String(d.getDate()).padStart(2, "0")
   );
-}
-
-async function readJsonlStream(file, onObj) {
-  let stream;
-  try {
-    stream = fs.createReadStream(file, { encoding: "utf8" });
-  } catch {
-    return;
-  }
-  const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
-  try {
-    for await (const line of rl) {
-      if (!line) continue;
-      let o;
-      try {
-        o = JSON.parse(line);
-      } catch {
-        continue;
-      }
-      try {
-        onObj(o);
-      } catch {}
-    }
-  } catch {}
 }
 
 class CallScan {
@@ -62,15 +42,9 @@ class CallScan {
 
   saveCache() {
     if (!this.cachePath) return;
-    const tmp = this.cachePath + ".tmp";
     try {
-      fs.writeFileSync(tmp, JSON.stringify({ v: 2, files: this.cacheOut }));
-      fs.renameSync(tmp, this.cachePath);
-    } catch {
-      try {
-        fs.unlinkSync(tmp);
-      } catch {}
-    }
+      writeJsonFile(this.cachePath, { v: 2, files: this.cacheOut });
+    } catch {}
   }
 
   group(source) {
@@ -180,7 +154,7 @@ async function collectClaude(scan) {
     walk(dir, ".jsonl", (f) => files.push(f));
     await mapLimit(files, 16, (file) =>
       scan.file("claude", file, async (out) => {
-        await readJsonlStream(file, (o) => {
+        await readJsonl(file, (o) => {
           const msg = o && o.message;
           if (!msg || !Array.isArray(msg.content)) return;
           let ts = Date.parse(o.timestamp || msg.timestamp || "");
@@ -201,7 +175,7 @@ async function collectClaude(scan) {
               out.add({ i: c.id, t: ts, k: "tool", n: name });
             }
           }
-        });
+        }, CLAUDE_KEEP);
       })
     );
   }
@@ -226,7 +200,7 @@ async function collectCodex(scan) {
     walk(dir, ".jsonl", (f) => files.push(f));
     await mapLimit(files, 8, (file) =>
       scan.file("codex", file, async (out) => {
-        await readJsonlStream(file, (o) => {
+        await readJsonl(file, (o) => {
           const p = o && o.payload;
           if (!p) return;
           let ts = Date.parse(o.timestamp || "");
@@ -254,7 +228,7 @@ async function collectCodex(scan) {
             const tool = typeof it.tool === "string" ? it.tool : "";
             if (server && tool) out.add({ i: it.id != null ? String(it.id) : null, t: ts, k: "mcp", s: server, n: tool });
           }
-        });
+        }, CODEX_KEEP);
       })
     );
   }
@@ -346,7 +320,7 @@ async function collectCursor(scan) {
       try {
         mtime = fs.statSync(file).mtimeMs;
       } catch {}
-      await readJsonlStream(file, (o) => {
+      await readJsonl(file, (o) => {
         const msg = o && o.message;
         const content = msg && msg.content;
         if (!Array.isArray(content)) return;
@@ -363,7 +337,7 @@ async function collectCursor(scan) {
             out.add({ i: id, t: mtime, k: "tool", n: cursorSrc.toolName(name) });
           }
         }
-      });
+      }, CLAUDE_KEEP);
     })
   );
 

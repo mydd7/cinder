@@ -1,7 +1,6 @@
 const fs = require("fs");
-const fsp = require("fs/promises");
 const path = require("path");
-const { num, walk, mapLimit, HOME } = require("../normalize");
+const { num, walk, readJsonl, mapLimit, HOME } = require("../normalize");
 
 function files() {
   const out = [];
@@ -37,19 +36,8 @@ function tsOf(r) {
 async function collect(cx) {
   await mapLimit(files(), 8, (file) =>
     cx.scanFile("copilot", path.dirname(file), file, async (out) => {
-      let raw;
-      try {
-        raw = await fsp.readFile(file, "utf8");
-      } catch {
-        return;
-      }
       const records = [];
-      for (const line of raw.split(/\r?\n/)) {
-        if (!line.includes("attributes")) continue;
-        try {
-          records.push(JSON.parse(line));
-        } catch {}
-      }
+      await readJsonl(file, (o) => records.push(o), (line) => line.includes("attributes"));
       const ctx = new Map();
       for (const r of records) {
         const a = r.attributes;

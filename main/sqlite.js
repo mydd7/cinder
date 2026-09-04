@@ -40,7 +40,7 @@ function run(cmd, reader, dbPath, sql, extraEnv) {
       {
         env: { ...process.env, ...extraEnv },
         maxBuffer: 512 * 1024 * 1024,
-        timeout: 60000,
+        timeout: 10 * 60 * 1000,
         windowsHide: true
       },
       (err, stdout) => {
@@ -62,14 +62,28 @@ async function queryAll(dbPath, sql) {
   return run("node", UNPACKED, dbPath, sql, {});
 }
 
-async function queryLive(dbPath, sql) {
-  const copy = copyLiveDb(dbPath);
-  if (!copy) return queryAll(dbPath, sql);
+async function withLiveDb(dbPath, fn) {
+  let direct = true;
+  let copy = null;
+  const query = async (sql) => {
+    if (direct) {
+      const rows = await queryAll(dbPath, sql);
+      if (rows) return rows;
+      direct = false;
+    }
+    if (!copy) copy = copyLiveDb(dbPath);
+    if (!copy) return null;
+    return queryAll(copy.path, sql);
+  };
   try {
-    return await queryAll(copy.path, sql);
+    return await fn(query);
   } finally {
-    copy.cleanup();
+    if (copy) copy.cleanup();
   }
 }
 
-module.exports = { queryAll, queryLive, copyLiveDb, available: () => true };
+function queryLive(dbPath, sql) {
+  return withLiveDb(dbPath, (query) => query(sql));
+}
+
+module.exports = { queryAll, queryLive, withLiveDb, copyLiveDb, available: () => true };

@@ -130,6 +130,10 @@ export function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [startScan]);
 
+  useEffect(() => {
+    window.cinder?.onMenuRescan(() => void startScan());
+  }, [startScan]);
+
   const entries = data?.entries ?? [];
   const full = useMemo(() => summarize(entries), [entries]);
   const periodic = view === "overview" || view === "activity" || view === "models" || view === "projects" || view === "sessions";
@@ -182,7 +186,10 @@ export function App() {
           <div className="grid h-[62vh] place-items-center">
             <div className="w-[320px]">
               <div className="mb-2.5 flex items-baseline justify-between text-[12.5px] text-muted-foreground">
-                <span>{progress.label ? `Scanning ${progress.label}…` : "Scanning local usage logs…"}</span>
+                <span>
+                  {progress.label ? `Scanning ${progress.label}…` : "Scanning local usage logs…"}
+                  {progress.files ? ` · ${progress.files.toLocaleString()} files` : ""}
+                </span>
                 <span className="tnum">{progress.total ? Math.round((progress.done / progress.total) * 100) : 0}%</span>
               </div>
               <div className="h-[6px] overflow-hidden rounded-full bg-muted">

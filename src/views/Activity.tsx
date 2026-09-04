@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { streaks } from "@/lib/aggregate";
+import { requestsOf, streaks } from "@/lib/aggregate";
 import { fmt } from "@/lib/format";
 import { provColor, provLabel } from "@/lib/providers";
 import type { Entry, Summary } from "@/lib/types";
@@ -37,7 +37,7 @@ export function Activity({ sum, full, entries, period }: { sum: Summary; full: S
       if (!arr) map.set(e.source, (arr = []));
       arr.push(e);
     }
-    return [...map.entries()].sort((a, b) => b[1].length - a[1].length);
+    return [...map.entries()].sort((a, b) => requestsOf(b[1]) - requestsOf(a[1]));
   }, [entries]);
 
   return (
@@ -58,7 +58,7 @@ export function Activity({ sum, full, entries, period }: { sum: Summary; full: S
                   <Heatmap entries={es} days={heatDays} maxCell={14} showLegend={false} />
                 </div>
                 <span className="w-[52px] shrink-0 text-right text-[11.5px] text-muted-foreground tnum">
-                  {fmt.compact(es.length)}
+                  {fmt.compact(requestsOf(es))}
                 </span>
               </div>
             ))}

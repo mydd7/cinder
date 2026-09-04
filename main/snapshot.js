@@ -1,5 +1,7 @@
 const fs = require("fs");
 const path = require("path");
+const { writeJsonFile } = require("./jsonfile");
+const { compactEntries, USAGE_VERSION } = require("./normalize");
 
 const FILE = "scan-snapshot.json";
 
@@ -16,6 +18,12 @@ function readSnapshot(dir) {
     const raw = JSON.parse(fs.readFileSync(snapshotPath(dir), "utf8"));
     if (raw && typeof raw === "object") cached = raw;
   } catch {}
+  const usage = cached && cached.usage;
+  if (usage && usage.v !== USAGE_VERSION && Array.isArray(usage.entries)) {
+    usage.entries.sort((a, b) => a.t - b.t);
+    usage.entries = compactEntries(usage.entries);
+    usage.v = USAGE_VERSION;
+  }
   return cached;
 }
 
@@ -25,7 +33,7 @@ function snapshotInfo(dir) {
   const usage = snap.usage;
   return {
     savedAt: snap.savedAt || usage.scannedAt || "",
-    entries: Array.isArray(usage.entries) ? usage.entries.length : 0,
+    entries: Array.isArray(usage.entries) ? usage.entries.reduce((sum, e) => sum + (e.n || 1), 0) : 0,
     sources: Array.isArray(usage.sources) ? usage.sources.length : 0,
     hasCalls: Boolean(snap.calls)
   };
@@ -35,10 +43,7 @@ function writeSnapshot(dir, patch) {
   const next = { ...(readSnapshot(dir) || {}), ...patch, savedAt: new Date().toISOString() };
   cached = next;
   try {
-    const file = snapshotPath(dir);
-    const tmp = file + ".tmp";
-    fs.writeFileSync(tmp, JSON.stringify(next));
-    fs.renameSync(tmp, file);
+    writeJsonFile(snapshotPath(dir), next);
   } catch {}
 }
 

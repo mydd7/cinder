@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("cinder", {
+  platform: process.platform,
   minimize: () => ipcRenderer.invoke("window:minimize"),
   toggleMaximize: () => ipcRenderer.invoke("window:toggle-maximize"),
   close: () => ipcRenderer.invoke("window:close"),
@@ -11,6 +12,7 @@ contextBridge.exposeInMainWorld("cinder", {
   calls: () => ipcRenderer.invoke("usage:calls"),
   cancelScan: () => ipcRenderer.invoke("usage:cancel"),
   onScanProgress: (cb) => ipcRenderer.on("usage:progress", (_e, p) => cb(p)),
+  onMenuRescan: (cb) => ipcRenderer.on("menu:rescan", () => cb()),
   snapshotInfo: () => ipcRenderer.invoke("snapshot:info"),
   snapshotUsage: () => ipcRenderer.invoke("snapshot:usage"),
   snapshotCalls: () => ipcRenderer.invoke("snapshot:calls"),

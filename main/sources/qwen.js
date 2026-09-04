@@ -1,7 +1,6 @@
 const fs = require("fs");
-const fsp = require("fs/promises");
 const path = require("path");
-const { num, mapLimit, envDirs, HOME } = require("../normalize");
+const { num, readJsonl, mapLimit, envDirs, HOME } = require("../normalize");
 
 function chatFiles() {
   const env = envDirs("QWEN_DATA_DIR");
@@ -38,22 +37,9 @@ async function collect(cx) {
   const files = chatFiles();
   await mapLimit(files, 16, (file) =>
     cx.scanFile("qwen", path.dirname(file), file, async (out) => {
-      let raw;
-      try {
-        raw = await fsp.readFile(file, "utf8");
-      } catch {
-        return;
-      }
-      for (const line of raw.split(/\r?\n/)) {
-        if (!line.includes("usageMetadata") && !line.includes("usage_metadata")) continue;
-        let o;
-        try {
-          o = JSON.parse(line);
-        } catch {
-          continue;
-        }
+      await readJsonl(file, (o) => {
         const m = o.usageMetadata || o.usage_metadata;
-        if (!m) continue;
+        if (!m) return;
         const input = pick(m, ["promptTokenCount", "prompt_token_count"]);
         const output = pick(m, ["candidatesTokenCount", "candidates_token_count"]);
         const reasoning = pick(m, ["thoughtsTokenCount", "thoughts_token_count"]);
@@ -72,7 +58,7 @@ async function collect(cx) {
           reasoning,
           dedup: o.id || o.messageId || undefined
         });
-      }
+      }, (line) => line.includes("usageMetadata") || line.includes("usage_metadata"));
     })
   );
 }

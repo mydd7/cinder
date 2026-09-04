@@ -16,6 +16,7 @@ export interface Entry {
   costOutput: number;
   costCacheWrite: number;
   costCacheRead: number;
+  n?: number;
 }
 
 export interface SourceMeta {
@@ -67,6 +68,7 @@ export interface ScanProgress {
   done: number;
   total: number;
   label: string;
+  files?: number;
 }
 
 export interface SnapshotInfo {
@@ -130,6 +132,7 @@ export interface Summary {
 declare global {
   interface Window {
     cinder?: {
+      platform: string;
       minimize: () => Promise<void>;
       toggleMaximize: () => Promise<boolean>;
       close: () => Promise<void>;
@@ -140,6 +143,7 @@ declare global {
       calls: () => Promise<CallsResult>;
       cancelScan: () => Promise<boolean>;
       onScanProgress: (cb: (p: ScanProgress) => void) => void;
+      onMenuRescan: (cb: () => void) => void;
       snapshotInfo: () => Promise<SnapshotInfo | null>;
       snapshotUsage: () => Promise<CollectResult | null>;
       snapshotCalls: () => Promise<CallsResult | null>;

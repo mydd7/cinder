@@ -19,6 +19,9 @@ function dirs() {
   return [...new Set(out)];
 }
 
+const KEEP = (line) =>
+  line.includes('"token_count"') || line.includes('"turn_context"') || line.includes('"session_meta"');
+
 async function readFile(file, out) {
   let model = "gpt-5";
   let cwd = null;
@@ -63,7 +66,7 @@ async function readFile(file, out) {
         cacheRead: Math.max(0, dCr)
       });
     }
-  });
+  }, KEEP);
 }
 
 async function collect(cx) {

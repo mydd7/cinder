@@ -176,7 +176,7 @@ export function Sessions({ entries }: { entries: Entry[] }) {
       info.output += e.output;
       info.cacheWrite += e.cacheWrite;
       info.cacheRead += e.cacheRead;
-      info.requests += 1;
+      info.requests += e.n ?? 1;
       info.entries.push(e);
       if (e.t < info.start) info.start = e.t;
       if (e.t > info.end) info.end = e.t;

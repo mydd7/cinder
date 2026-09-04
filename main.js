@@ -53,7 +53,9 @@ function createWindow() {
     minWidth: 940,
     minHeight: 600,
     show: false,
-    frame: false,
+    ...(process.platform === "darwin"
+      ? { titleBarStyle: "hiddenInset", trafficLightPosition: { x: 12, y: 10 } }
+      : { frame: false }),
     backgroundColor: state.bg,
     icon: ICON,
     title: "Cinder",
@@ -90,6 +92,11 @@ function createWindow() {
   }
 
   win.once("ready-to-show", () => win.show());
+  win.webContents.on("render-process-gone", (_e, details) => {
+    if (details.reason === "clean-exit" || !win || win.isDestroyed()) return;
+    console.error("renderer gone:", details.reason);
+    win.webContents.reload();
+  });
   win.on("maximize", () => {
     win.webContents.send("window:state", true);
     queueSave();
@@ -125,6 +132,21 @@ function appMenu() {
         { role: "paste" },
         { role: "selectAll" }
       ]
+    },
+    {
+      label: "View",
+      submenu: [
+        {
+          label: "Rescan",
+          accelerator: "CmdOrCtrl+R",
+          click: () => win && !win.isDestroyed() && win.webContents.send("menu:rescan")
+        },
+        { type: "separator" },
+        { role: "togglefullscreen" }
+      ]
+    },
+    {
+      role: "windowMenu"
     }
   ]);
 }
@@ -151,15 +173,19 @@ let nextJob = 1;
 function createPool(serviceName) {
   const pool = { proc: null, jobs: new Map() };
 
-  pool.settleAll = (value) => {
-    for (const job of pool.jobs.values()) job.resolve(value);
+  pool.settleAll = (make) => {
+    for (const job of pool.jobs.values()) job.resolve(make(job));
     pool.jobs.clear();
   };
 
   pool.ensure = () => {
     if (pool.proc) return pool.proc;
-    pool.proc = utilityProcess.fork(path.join(__dirname, "main", "scan-worker.js"), [], { serviceName });
-    pool.proc.on("message", (msg) => {
+    const proc = utilityProcess.fork(path.join(__dirname, "main", "scan-worker.js"), [], {
+      serviceName,
+      execArgv: ["--max-old-space-size=4096"]
+    });
+    pool.proc = proc;
+    proc.on("message", (msg) => {
       if (!msg || typeof msg !== "object") return;
       const job = pool.jobs.get(msg.id);
       if (!job) return;
@@ -171,11 +197,13 @@ function createPool(serviceName) {
       if (msg.type === "done") job.resolve(msg.result);
       else job.resolve({ ...job.fallback, error: msg.message });
     });
-    pool.proc.on("exit", () => {
+    proc.on("exit", (code) => {
+      if (pool.proc !== proc) return;
       pool.proc = null;
-      pool.settleAll({ cancelled: true });
+      const message = `Scan worker exited unexpectedly (code ${code})`;
+      pool.settleAll((job) => ({ ...job.fallback, error: message }));
     });
-    return pool.proc;
+    return proc;
   };
 
   pool.run = (payload, fallback) =>
@@ -190,7 +218,7 @@ function createPool(serviceName) {
     const proc = pool.proc;
     pool.proc = null;
     proc.kill();
-    pool.settleAll({ cancelled: true });
+    pool.settleAll(() => ({ cancelled: true }));
     return true;
   };
 
