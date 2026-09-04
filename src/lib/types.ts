@@ -16,6 +16,7 @@ export interface Entry {
   costOutput: number;
   costCacheWrite: number;
   costCacheRead: number;
+  n?: number;
 }
 
 export interface SourceMeta {
@@ -67,6 +68,7 @@ export interface ScanProgress {
   done: number;
   total: number;
   label: string;
+  files?: number;
 }
 
 export interface SnapshotInfo {

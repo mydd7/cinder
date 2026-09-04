@@ -1,8 +1,8 @@
 const fs = require("fs");
-const fsp = require("fs/promises");
 const path = require("path");
 const os = require("os");
 const { costParts } = require("./pricing");
+const { writeJsonFile } = require("./jsonfile");
 
 const HOME = os.homedir();
 
@@ -30,36 +30,52 @@ function walk(dir, ext, hit) {
   }
 }
 
-async function readJsonl(file, onObj) {
-  let raw;
-  try {
-    raw = await fsp.readFile(file, "utf8");
-  } catch {
-    return;
-  }
-  let start = 0;
-  const len = raw.length;
-  while (start < len) {
-    let nl = raw.indexOf("\n", start);
-    if (nl === -1) nl = len;
-    let end = nl;
-    if (end > start && raw.charCodeAt(end - 1) === 13) end--;
-    if (end > start) {
-      const line = raw.slice(start, end);
+const NL = 10;
+const CR = 13;
+
+function readJsonl(file, onObj, filter) {
+  return new Promise((resolve) => {
+    let stream;
+    try {
+      stream = fs.createReadStream(file, { highWaterMark: 1 << 20 });
+    } catch {
+      return resolve();
+    }
+    let rest = null;
+    const handle = (line) => {
+      let end = line.length;
+      if (end && line[end - 1] === CR) end--;
+      if (!end) return;
+      if (end !== line.length) line = line.subarray(0, end);
+      if (filter && !filter(line)) return;
       let o;
       try {
-        o = JSON.parse(line);
+        o = JSON.parse(line.toString("utf8"));
       } catch {
-        o = undefined;
+        return;
       }
-      if (o !== undefined) {
-        try {
-          onObj(o);
-        } catch {}
+      if (o === undefined) return;
+      try {
+        onObj(o);
+      } catch {}
+    };
+    stream.on("data", (chunk) => {
+      const data = rest ? Buffer.concat([rest, chunk]) : chunk;
+      let start = 0;
+      let nl;
+      while ((nl = data.indexOf(NL, start)) !== -1) {
+        handle(data.subarray(start, nl));
+        start = nl + 1;
       }
-    }
-    start = nl + 1;
-  }
+      rest = start < data.length ? Buffer.from(data.subarray(start)) : null;
+    });
+    stream.on("end", () => {
+      if (rest) handle(rest);
+      rest = null;
+      resolve();
+    });
+    stream.on("error", () => resolve());
+  });
 }
 
 async function mapLimit(items, limit, fn) {
@@ -93,6 +109,39 @@ function envDirs(name) {
   return raw.split(sep).map((s) => s.trim()).filter(Boolean);
 }
 
+const USAGE_VERSION = 2;
+const BUCKET_MS = 60 * 1000;
+
+function compactEntries(entries) {
+  const out = [];
+  const open = new Map();
+  for (const e of entries) {
+    const bucket = Math.floor(e.t / BUCKET_MS);
+    const key = e.source + "\0" + e.model + "\0" + e.provider + "\0" + e.project + "\0" + e.session;
+    const cur = open.get(key);
+    if (cur && cur.bucket === bucket) {
+      const m = cur.entry;
+      m.input += e.input;
+      m.output += e.output;
+      m.cacheWrite += e.cacheWrite;
+      m.cacheWrite1h += e.cacheWrite1h;
+      m.cacheRead += e.cacheRead;
+      m.reasoning += e.reasoning;
+      m.cost += e.cost;
+      m.costInput += e.costInput;
+      m.costOutput += e.costOutput;
+      m.costCacheWrite += e.costCacheWrite;
+      m.costCacheRead += e.costCacheRead;
+      m.n += e.n || 1;
+      continue;
+    }
+    const m = { ...e, n: e.n || 1 };
+    out.push(m);
+    open.set(key, { bucket, entry: m });
+  }
+  return out;
+}
+
 class Collector {
   constructor() {
     this.entries = [];
@@ -102,6 +151,7 @@ class Collector {
     this.cacheIn = {};
     this.cacheOut = {};
     this.cachePath = null;
+    this.onFile = null;
   }
 
   loadCache(dir) {
@@ -115,15 +165,9 @@ class Collector {
 
   saveCache() {
     if (!this.cachePath) return;
-    const tmp = this.cachePath + ".tmp";
     try {
-      fs.writeFileSync(tmp, JSON.stringify({ v: 3, files: this.cacheOut }));
-      fs.renameSync(tmp, this.cachePath);
-    } catch {
-      try {
-        fs.unlinkSync(tmp);
-      } catch {}
-    }
+      writeJsonFile(this.cachePath, { v: 3, files: this.cacheOut });
+    } catch {}
   }
 
   async scanFile(source, dir, key, parseFn) {
@@ -154,6 +198,7 @@ class Collector {
     let added = false;
     for (const e of raws) if (this.add(e)) added = true;
     if (added) this.file(source, dir);
+    if (this.onFile) this.onFile();
   }
 
   stat(source) {
@@ -243,11 +288,14 @@ class Collector {
 
   result() {
     this.entries.sort((a, b) => a.t - b.t);
+    const entries = compactEntries(this.entries);
+    this.entries = [];
+    this.seen.clear();
     const sources = [...this.sources.values()]
       .filter((s) => s.entries > 0)
       .map((s) => ({ source: s.source, files: s.files, entries: s.entries, dir: s.dirs[0] || "" }));
-    return { entries: this.entries, sources, home: this.home, scannedAt: new Date().toISOString() };
+    return { v: USAGE_VERSION, entries, sources, home: this.home, scannedAt: new Date().toISOString() };
   }
 }
 
-module.exports = { num, walk, readJsonl, mapLimit, toIso, envDirs, Collector, HOME };
+module.exports = { num, walk, readJsonl, mapLimit, toIso, envDirs, compactEntries, Collector, HOME, USAGE_VERSION };

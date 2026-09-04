@@ -71,7 +71,7 @@ async function collect(cx) {
             cost: typeof o.costUSD === "number" ? o.costUSD : undefined,
             dedup: id !== ":" ? id : undefined
           });
-        });
+        }, (line) => line.includes('"usage"'));
       })
     );
   }

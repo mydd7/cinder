@@ -26,14 +26,30 @@ async function collect(cacheDir, onProgress) {
   const cx = new Collector();
   cx.loadCache(cacheDir);
   let done = 0;
+  let files = 0;
+  let label = "";
+  let lastPost = 0;
+  const post = (force) => {
+    if (!onProgress) return;
+    const now = Date.now();
+    if (!force && now - lastPost < 200) return;
+    lastPost = now;
+    onProgress({ done, total: SOURCES.length, label, files });
+  };
+  cx.onFile = () => {
+    files++;
+    post(false);
+  };
   for (const source of SOURCES) {
-    if (onProgress) onProgress({ done, total: SOURCES.length, label: source.label });
+    label = source.label;
+    post(true);
     try {
       await source.collect(cx);
     } catch {}
     done++;
   }
-  if (onProgress) onProgress({ done, total: SOURCES.length, label: "" });
+  label = "";
+  post(true);
   cx.saveCache();
   const res = cx.result();
   res.catalog = CATALOG;

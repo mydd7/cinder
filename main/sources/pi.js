@@ -35,7 +35,7 @@ async function collect(cx) {
             cacheRead,
             dedup: msg.id != null ? String(msg.id) : undefined
           });
-        });
+        }, (line) => line.includes('"usage"'));
       })
     );
   }

@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const { walk, envDirs, HOME } = require("../normalize");
-const { queryLive } = require("../sqlite");
+const { queryLive, withLiveDb } = require("../sqlite");
 
 const HASH_SQL =
   "SELECT requestId AS id, MAX(conversationId) AS session, MAX(model) AS model, MIN(createdAt) AS ts FROM ai_code_hashes WHERE requestId IS NOT NULL AND TRIM(requestId) != '' GROUP BY requestId";
@@ -142,9 +142,11 @@ async function collect(cx) {
 
   for (const db of stateDbs()) {
     await cx.scanFile("cursor", path.dirname(db), db, async (out) => {
-      const composers = await queryLive(db, COMPOSER_SQL);
+      const { composers, bubbles } = await withLiveDb(db, async (query) => ({
+        composers: await query(COMPOSER_SQL),
+        bubbles: (await query(BUBBLE_SQL)) || []
+      }));
       if (!composers) throw new Error("sqlite unavailable");
-      const bubbles = (await queryLive(db, BUBBLE_SQL)) || [];
       const withBubbles = new Set();
 
       for (const r of bubbles) {

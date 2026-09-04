@@ -13,8 +13,14 @@ function add(t: Totals, e: Entry) {
   t.cacheWrite += e.cacheWrite;
   t.cacheRead += e.cacheRead;
   t.tokens += e.input + e.output + e.cacheWrite + e.cacheRead;
-  t.requests += 1;
+  t.requests += e.n ?? 1;
   t.cost += e.cost;
+}
+
+export function requestsOf(entries: Entry[]): number {
+  let n = 0;
+  for (const e of entries) n += e.n ?? 1;
+  return n;
 }
 
 export function filterPeriod(entries: Entry[], days: number): Entry[] {
@@ -65,7 +71,7 @@ export function summarize(entries: Entry[]): Summary {
 
     const h = byHour[d.getHours()];
     h.tokens += e.input + e.output + e.cacheWrite + e.cacheRead;
-    h.requests += 1;
+    h.requests += e.n ?? 1;
 
     sessions.add(e.session);
   }
@@ -95,7 +101,7 @@ export function summarize(entries: Entry[]): Summary {
     activeDays: byDay.size,
     first,
     last,
-    count: entries.length
+    count: totals.requests
   };
 }
 
@@ -132,7 +138,7 @@ export function heatmap(entries: Entry[], days = 371): { cells: HeatCell[]; max:
     const t = e.t;
     if (t < cut) continue;
     const k = fmt.dayKey(new Date(t));
-    counts.set(k, (counts.get(k) || 0) + 1);
+    counts.set(k, (counts.get(k) || 0) + (e.n ?? 1));
   }
   const end = new Date();
   end.setHours(0, 0, 0, 0);

@@ -1,7 +1,7 @@
 const fs = require("fs");
 const fsp = require("fs/promises");
 const path = require("path");
-const { num, walk, mapLimit, envDirs, HOME } = require("../normalize");
+const { num, walk, readJsonl, mapLimit, envDirs, HOME } = require("../normalize");
 
 function dirs() {
   const env = envDirs("GEMINI_DATA_DIR");
@@ -57,24 +57,19 @@ async function collect(cx) {
     walk(dir, ".jsonl", (f) => files.push(f));
     await mapLimit(files, 16, (file) =>
       cx.scanFile("gemini", dir, file, async (out) => {
+        if (file.endsWith(".jsonl")) {
+          await readJsonl(file, (o) => record(o, file, out));
+          return;
+        }
         let raw;
         try {
           raw = await fsp.readFile(file, "utf8");
         } catch {
           return;
         }
-        if (file.endsWith(".jsonl")) {
-          for (const line of raw.split(/\r?\n/)) {
-            if (!line.trim()) continue;
-            try {
-              record(JSON.parse(line), file, out);
-            } catch {}
-          }
-        } else {
-          try {
-            record(JSON.parse(raw), file, out);
-          } catch {}
-        }
+        try {
+          record(JSON.parse(raw), file, out);
+        } catch {}
       })
     );
   }
