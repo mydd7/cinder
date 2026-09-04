@@ -1,7 +1,7 @@
 {
   "name": "cinder",
   "productName": "Cinder",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "private": true,
   "author": "Cinder",
   "license": "MIT",
@@ -85,7 +85,10 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["arm64", "x64"]
+          "arch": [
+            "arm64",
+            "x64"
+          ]
         }
       ],
       "icon": "icon/icon.png",
