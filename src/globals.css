@@ -1,11 +1,9 @@
 @import "tailwindcss";
-@import "tw-animate-css";
 @import "./styles/fonts.css";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-heading: var(--font-sans);
   --font-sans: "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
   --color-ring: var(--ring);
@@ -50,7 +48,6 @@
   --secondary-foreground: #f5f4ee;
   --muted: #2a2926;
   --muted-foreground: #b0a89a;
-  --faint-foreground: #8a8377;
   --accent: #2f2d2a;
   --accent-foreground: #f5f4ee;
   --destructive: #e5634d;
@@ -66,9 +63,6 @@
   --border: color-mix(in oklch, var(--foreground) 11%, transparent);
   --input: color-mix(in oklch, var(--foreground) 15%, transparent);
   --ring: var(--brand);
-  --ring-card: color-mix(in oklch, var(--foreground) 8%, transparent);
-  --hover: color-mix(in oklch, var(--foreground) 5%, transparent);
-  --active: color-mix(in oklch, var(--foreground) 8%, transparent);
   --heat-0: color-mix(in oklch, var(--foreground) 6%, transparent);
   --heat-1: color-mix(in oklch, var(--brand) 24%, transparent);
   --heat-2: color-mix(in oklch, var(--brand) 46%, transparent);
@@ -78,11 +72,6 @@
   --dur-fast: 150ms;
   --dur-base: 220ms;
   --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@theme inline {
-  --color-brand: var(--brand);
-  --color-brand-2: var(--brand-2);
 }
 
 @layer base {
@@ -132,7 +121,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-@keyframes terax-tab-in {
+@keyframes view-in {
   from {
     opacity: 0;
     transform: translateY(5px);
@@ -142,13 +131,14 @@
     transform: translateY(0);
   }
 }
-.terax-tab-in {
-  animation: terax-tab-in var(--dur-base) var(--ease-premium);
+.view-in {
+  animation: view-in var(--dur-base) var(--ease-premium);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .terax-tab-in,
+  .view-in,
   .animate-spin {
     animation-duration: 0.01ms;
   }
 }
+

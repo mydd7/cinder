@@ -38,7 +38,7 @@ export function ThemeMenu({ themeId, mode, onTheme, onMode }: Props) {
           <>
             <div className="fixed inset-0 z-[90]" onClick={() => setOpen(false)} />
             <div
-              className="fixed z-[91] w-[236px] rounded-2xl bg-popover p-3 shadow-[0_18px_50px_-12px_rgba(0,0,0,0.55)] ring-1 ring-foreground/10 terax-tab-in"
+              className="fixed z-[91] w-[236px] rounded-2xl bg-popover p-3 shadow-[0_18px_50px_-12px_rgba(0,0,0,0.55)] ring-1 ring-foreground/10 view-in"
               style={{ top: pos.top, right: pos.right }}
             >
               <div className="mb-2 flex rounded-lg bg-muted p-[3px]">

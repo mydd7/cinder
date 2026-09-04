@@ -322,15 +322,80 @@ async function main() {
     process.exit(1);
   }
 
-  fs.writeFileSync(OUT, JSON.stringify(data));
-  const kb = Math.round(fs.statSync(OUT).size / 1024);
-  process.stdout.write(
-    `wrote pricing-data.json — ${Object.keys(data.flat).length} aliases, ` +
-      `${Object.keys(data.qualified).length} provider-scoped, ${kb} KB\n`
+  writeOut(data);
+}
+
+function stable(v) {
+  if (v === null || typeof v !== "object") return JSON.stringify(v);
+  if (Array.isArray(v)) return "[" + v.map(stable).join(",") + "]";
+  return (
+    "{" +
+    Object.keys(v)
+      .sort()
+      .map((k) => JSON.stringify(k) + ":" + stable(v[k]))
+      .join(",") +
+    "}"
   );
 }
 
-main().catch((err) => {
-  process.stderr.write(String((err && err.stack) || err) + "\n");
-  process.exit(1);
-});
+function intern(data) {
+  const rates = [];
+  const index = new Map();
+  const idx = (rate) => {
+    const s = stable(rate);
+    if (index.has(s)) return index.get(s);
+    const i = rates.length;
+    index.set(s, i);
+    rates.push(rate);
+    return i;
+  };
+  const pack = (src) => {
+    const out = {};
+    for (const k of Object.keys(src).sort()) out[k] = idx(src[k]);
+    return out;
+  };
+  return { rates, flat: pack(data.flat), qualified: pack(data.qualified) };
+}
+
+function inflate(raw) {
+  if (!raw || typeof raw !== "object") return { flat: {}, qualified: {} };
+  if (!Array.isArray(raw.rates)) {
+    return { flat: raw.flat || {}, qualified: raw.qualified || {} };
+  }
+  const expand = (map) => {
+    const out = {};
+    for (const [k, i] of Object.entries(map || {})) {
+      const r = typeof i === "number" ? raw.rates[i] : i;
+      if (r) out[k] = r;
+    }
+    return out;
+  };
+  return { flat: expand(raw.flat), qualified: expand(raw.qualified) };
+}
+
+function writeOut(data) {
+  const packed = intern(data);
+  fs.writeFileSync(OUT, JSON.stringify(packed, null, 2) + "\n");
+  const kb = Math.round(fs.statSync(OUT).size / 1024);
+  process.stdout.write(
+    `wrote pricing-data.json — ${Object.keys(data.flat).length} aliases, ` +
+      `${Object.keys(data.qualified).length} provider-scoped, ${packed.rates.length} unique rates, ${kb} KB\n`
+  );
+}
+
+if (process.argv.includes("--repack")) {
+  const raw = JSON.parse(fs.readFileSync(OUT, "utf8"));
+  const data = inflate(raw);
+  const problems = validate(data);
+  if (problems.length) {
+    process.stderr.write("refusing to write, validation failed:\n");
+    for (const p of problems.slice(0, 30)) process.stderr.write("  " + p + "\n");
+    process.exit(1);
+  }
+  writeOut(data);
+} else {
+  main().catch((err) => {
+    process.stderr.write(String((err && err.stack) || err) + "\n");
+    process.exit(1);
+  });
+}

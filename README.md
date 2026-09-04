@@ -29,7 +29,7 @@ Windows and macOS builds are on [releases](https://github.com/mydd7/cinder/relea
 4. `npm run icons` — regenerates `icon/` from `tools/make-icons.js`
 
 ## Stack
-Electron, React 19, Vite, Tailwind v4, shadcn/ui, hugeicons. renderer in `src/`, collectors in `main/`, bridge in `preload.js`.
+Electron, React 19, Vite, Tailwind v4, hugeicons. renderer in `src/`, collectors in `main/`, bridge in `preload.js`.
 
 ## Sources
 Claude, Codex, OpenCode, Kilo, Goose, Hermes, Gemini, Qwen, Droid, Amp, Kimi, Codebuff, OpenClaw, Pi, GitHub Copilot, Cursor, Antigravity. each reader lives in `main/sources/` and resolves its own default paths plus an override env var. SQLite sources use `node:sqlite`. Antigravity stores usage as protobuf with no `.proto`, so the reader decodes by field number. Cursor does not persist token counts locally: requests, models, sessions and tool calls only.

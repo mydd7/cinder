@@ -86,4 +86,4 @@ function queryLive(dbPath, sql) {
   return withLiveDb(dbPath, (query) => query(sql));
 }
 
-module.exports = { queryAll, queryLive, withLiveDb, copyLiveDb, available: () => true };
+module.exports = { queryAll, queryLive, withLiveDb };

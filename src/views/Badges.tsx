@@ -2,7 +2,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { evaluateTracks, globalRank } from "@/lib/badges";
 import { ICON } from "@/lib/icons";
 import type { Summary } from "@/lib/types";
-import { Card } from "@/components/ui/card";
+import { Card } from "@/components/Primitives";
 
 export function Badges({ full }: { full: Summary }) {
   const tracks = evaluateTracks(full);

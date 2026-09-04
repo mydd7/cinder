@@ -220,7 +220,7 @@ export function App() {
             No data in this period.
           </div>
         ) : (
-          <div key={view} className="terax-tab-in">
+          <div key={view} className="view-in">
             {view === "overview" && <Overview sum={sum} period={period} />}
             {view === "activity" && <Activity sum={sum} full={full} entries={periodEntries} period={period} />}
             {view === "calls" && <Calls calls={callsData} />}

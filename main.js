@@ -84,7 +84,7 @@ function createWindow() {
     if (url !== win.webContents.getURL()) e.preventDefault();
   });
 
-  if (process.env.AU_DEV) {
+  if (process.env.CINDER_DEV) {
     win.loadURL("http://localhost:5173");
     win.webContents.openDevTools({ mode: "detach" });
   } else {

@@ -60,4 +60,4 @@ async function collect(cacheDir, onProgress) {
   return res;
 }
 
-module.exports = { collect, CATALOG };
+module.exports = { collect };

@@ -118,4 +118,24 @@ describe("costParts", () => {
     });
     assert.equal(c.input + c.output + c.cacheWrite + c.cacheRead, 0);
   });
+
+  it("prices a known claude snapshot alias", () => {
+    const { priceFor } = require("../main/pricing");
+    const p = priceFor("claude-sonnet-4-20250514", "anthropic");
+    assert.equal(p.known, true);
+    assert.equal(p.in, 3);
+    assert.equal(p.out, 15);
+  });
+});
+
+describe("pricing-data.json", () => {
+  it("is interned and pretty-printed", () => {
+    const raw = fs.readFileSync(path.join(__dirname, "..", "pricing-data.json"), "utf8");
+    assert.ok(raw.startsWith("{\n"));
+    const data = JSON.parse(raw);
+    assert.ok(Array.isArray(data.rates) && data.rates.length > 0);
+    const sample = Object.values(data.flat)[0];
+    assert.equal(typeof sample, "number");
+    assert.ok(data.rates[sample] && typeof data.rates[sample].in === "number");
+  });
 });

@@ -1,9 +1,25 @@
 const fs = require("fs");
 const path = require("path");
 
+function inflatePricing(raw) {
+  if (!raw || typeof raw !== "object") return { flat: {}, qualified: {} };
+  if (!Array.isArray(raw.rates)) {
+    return { flat: raw.flat || {}, qualified: raw.qualified || {} };
+  }
+  const expand = (map) => {
+    const out = {};
+    for (const [k, i] of Object.entries(map || {})) {
+      const r = typeof i === "number" ? raw.rates[i] : i;
+      if (r) out[k] = r;
+    }
+    return out;
+  };
+  return { flat: expand(raw.flat), qualified: expand(raw.qualified) };
+}
+
 let DATA = { flat: {}, qualified: {} };
 try {
-  DATA = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "pricing-data.json"), "utf8"));
+  DATA = inflatePricing(JSON.parse(fs.readFileSync(path.join(__dirname, "..", "pricing-data.json"), "utf8")));
 } catch {
   DATA = { flat: {}, qualified: {} };
 }
@@ -194,11 +210,6 @@ function costParts(model, provider, u, ts) {
   };
 }
 
-function costOf(model, provider, u, ts) {
-  const c = costParts(model, provider, u, ts);
-  return c.input + c.output + c.cacheWrite + c.cacheRead;
-}
-
 function hasRate(model, provider) {
   for (const c of candidates(model, provider)) {
     if (DATA.qualified[c] || DATA.flat[c]) return true;
@@ -206,4 +217,4 @@ function hasRate(model, provider) {
   return false;
 }
 
-module.exports = { priceFor, costOf, costParts, hasRate };
+module.exports = { priceFor, costParts, hasRate };

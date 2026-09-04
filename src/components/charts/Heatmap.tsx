@@ -5,7 +5,7 @@ import { useMeasure } from "@/hooks/useMeasure";
 import type { Entry } from "@/lib/types";
 import { ChartTip } from "./ChartTip";
 
-export const HEAT_LEVELS = ["var(--heat-0)", "var(--heat-1)", "var(--heat-2)", "var(--heat-3)", "var(--heat-4)"];
+const HEAT_LEVELS = ["var(--heat-0)", "var(--heat-1)", "var(--heat-2)", "var(--heat-3)", "var(--heat-4)"];
 const WD = ["S", "M", "T", "W", "T", "F", "S"];
 const GAP = 3;
 
