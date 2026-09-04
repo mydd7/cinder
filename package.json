@@ -1,7 +1,7 @@
 {
   "name": "cinder",
   "productName": "Cinder",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "private": true,
   "author": "Cinder",
   "description": "Cinder",
@@ -82,7 +82,8 @@
       "icon": "icon/icon.png",
       "category": "public.app-category.developer-tools",
       "darkModeSupport": true,
-      "hardenedRuntime": true,
+      "identity": null,
+      "hardenedRuntime": false,
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
