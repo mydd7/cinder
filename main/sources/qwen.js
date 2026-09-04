@@ -22,6 +22,7 @@ function walkChats(dir, out) {
     return;
   }
   for (const e of entries) {
+    if (e.isSymbolicLink()) continue;
     const full = path.join(dir, e.name);
     if (e.isDirectory()) walkChats(full, out);
     else if (e.isFile() && e.name.endsWith(".jsonl") && path.basename(path.dirname(full)) === "chats") out.push(full);

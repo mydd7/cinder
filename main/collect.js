@@ -40,12 +40,15 @@ async function collect(cacheDir, onProgress) {
     files++;
     post(false);
   };
+  const errors = [];
   for (const source of SOURCES) {
     label = source.label;
     post(true);
     try {
       await source.collect(cx);
-    } catch {}
+    } catch (err) {
+      errors.push(source.label + ": " + String(err && err.message ? err.message : err));
+    }
     done++;
   }
   label = "";
@@ -53,6 +56,7 @@ async function collect(cacheDir, onProgress) {
   cx.saveCache();
   const res = cx.result();
   res.catalog = CATALOG;
+  if (errors.length) res.error = errors.join("; ");
   return res;
 }
 

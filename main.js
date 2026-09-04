@@ -226,9 +226,11 @@ function createPool(serviceName) {
 }
 
 const scanPool = createPool("cinder-scan");
+const callsPool = createPool("cinder-calls");
 
 function runScan(kind, cacheDir, fallback) {
-  return scanPool.run({ kind, cacheDir }, fallback);
+  const pool = kind === "calls" ? callsPool : scanPool;
+  return pool.run({ kind, cacheDir }, fallback);
 }
 
 function stopWorker() {
@@ -305,6 +307,7 @@ if (!app.requestSingleInstanceLock()) {
 
   app.on("will-quit", () => {
     scanPool.stop();
+    callsPool.stop();
   });
 
   app.on("window-all-closed", () => {

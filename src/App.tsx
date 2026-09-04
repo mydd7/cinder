@@ -131,7 +131,7 @@ export function App() {
   }, [startScan]);
 
   useEffect(() => {
-    window.cinder?.onMenuRescan(() => void startScan());
+    return window.cinder?.onMenuRescan(() => void startScan());
   }, [startScan]);
 
   const entries = data?.entries ?? [];
@@ -147,7 +147,7 @@ export function App() {
       <TitleBar themeId={themeId} mode={mode} onTheme={setThemeId} onMode={setMode} />
       <NavBar view={view} onView={setView} />
 
-      <main className="min-h-0 overflow-y-auto bg-background px-6 py-5 pb-10">
+      <main className="min-h-0 overflow-y-auto bg-background px-6 py-5 pb-10 select-text">
         <div className="mb-[18px] flex items-center justify-between gap-4">
           <h1 className="text-[19px] font-[620] tracking-[-0.025em]">{TITLES[view]}</h1>
           <div className={cn("flex items-center gap-2", boot !== "ready" && "hidden")}>
@@ -214,6 +214,10 @@ export function App() {
                 ? "Error: " + data.error
                 : `Scanned ${data?.catalog?.length ?? 0} local tools. Use one, then press refresh.`}
             </div>
+          </div>
+        ) : periodic && !periodEntries.length ? (
+          <div className="grid h-[60vh] place-items-center text-center text-muted-foreground">
+            No data in this period.
           </div>
         ) : (
           <div key={view} className="terax-tab-in">

@@ -41,9 +41,9 @@ function snapshotInfo(dir) {
 
 function writeSnapshot(dir, patch) {
   const next = { ...(readSnapshot(dir) || {}), ...patch, savedAt: new Date().toISOString() };
-  cached = next;
   try {
     writeJsonFile(snapshotPath(dir), next);
+    cached = next;
   } catch {}
 }
 

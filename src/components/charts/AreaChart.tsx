@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useId, useState, type MouseEvent } from "react";
 import { useMeasure } from "@/hooks/useMeasure";
 import { fmt } from "@/lib/format";
 import type { DayPoint } from "@/lib/types";
@@ -48,7 +48,7 @@ export function AreaChart({ series }: { series: DayPoint[] }) {
   const hd = hover ? series[hover.i] : null;
   const hTot = hd ? totals[hover!.i] : 0;
 
-  function onMove(e: React.MouseEvent) {
+  function onMove(e: MouseEvent) {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const relX = ((e.clientX - rect.left) / (rect.width || W)) * W;
     let i = n <= 1 ? 0 : Math.round(((relX - PAD.l) / plotW) * (n - 1));

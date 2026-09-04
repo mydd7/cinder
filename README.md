@@ -1,6 +1,6 @@
 # Cinder
 
-local desktop dashboard for AI coding token usage. reads local logs only, nothing leaves the machine.
+local desktop dashboard for AI coding token usage. reads local logs only, nothing leaves the machine. MIT.
 
 <img src="icon/icon.png" width="72" alt="" />
 

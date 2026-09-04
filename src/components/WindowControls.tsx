@@ -38,7 +38,7 @@ export function WindowControls() {
     const api = window.cinder;
     if (!api) return;
     void api.isMaximized().then(setMax).catch(() => {});
-    api.onWindowState(setMax);
+    return api.onWindowState(setMax);
   }, []);
 
   return (

@@ -17,7 +17,7 @@ export function useCalls() {
     setLoading(true);
     try {
       const res = await api.calls();
-      if (!res.cancelled) setData(res);
+      setData(res.cancelled ? { ...EMPTY, cancelled: true } : res);
     } catch (err) {
       setData({ ...EMPTY, error: String(err) });
     } finally {

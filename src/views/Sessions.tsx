@@ -1,4 +1,4 @@
-import { useMemo, useState, useId } from "react";
+import { useMemo, useState, useId, type MouseEvent } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ICON } from "@/lib/icons";
 import { cn } from "@/lib/utils";
@@ -55,7 +55,7 @@ function ContextGrowthChart({ session }: { session: SessionInfo }) {
   }
   const area = line ? `${line} L ${x(n - 1)} ${H - PAD.b} L ${x(0)} ${H - PAD.b} Z` : "";
 
-  function onMove(e: React.MouseEvent) {
+  function onMove(e: MouseEvent) {
     const rect = e.currentTarget.getBoundingClientRect();
     const relX = ((e.clientX - rect.left) / (rect.width || W)) * W;
     let i = n <= 1 ? 0 : Math.round(((relX - PAD.l) / plotW) * (n - 1));
@@ -310,14 +310,15 @@ export function Sessions({ entries }: { entries: Entry[] }) {
             <ContextGrowthChart session={active} />
           </Panel>
 
-          <Panel title="Turns breakdown" hint={`${fmt.int(turns.length)} of ${fmt.int(active.requests)}`}>
+          <Panel title="Turns breakdown" hint={`${fmt.int(turns.length)} rows · ${fmt.int(active.requests)} requests`}>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[500px] border-collapse text-left text-[12px]">
                 <thead>
                   <tr className="border-b border-border/60 font-medium text-muted-foreground">
-                    <th className="py-2.5 font-semibold">Turn</th>
+                    <th className="py-2.5 font-semibold">#</th>
                     <th className="py-2.5 font-semibold">Time</th>
                     <th className="py-2.5 font-semibold">Model</th>
+                    <th className="py-2.5 text-right font-semibold">Reqs</th>
                     <th className="py-2.5 text-right font-semibold">Input</th>
                     <th className="py-2.5 text-right font-semibold">Output</th>
                     <th className="py-2.5 text-right font-semibold">Cache Cr</th>
@@ -333,6 +334,7 @@ export function Sessions({ entries }: { entries: Entry[] }) {
                         {new Date(e.t).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                       </td>
                       <td className="max-w-[120px] truncate py-2.5 font-medium">{fmt.modelShort(e.model)}</td>
+                      <td className="py-2.5 text-right font-mono tnum">{fmt.int(e.n ?? 1)}</td>
                       <td className="py-2.5 text-right font-mono tnum">{fmt.int(e.input)}</td>
                       <td className="py-2.5 text-right font-mono tnum">{fmt.int(e.output)}</td>
                       <td className="py-2.5 text-right font-mono tnum text-muted-foreground">
@@ -347,12 +349,12 @@ export function Sessions({ entries }: { entries: Entry[] }) {
                 </tbody>
               </table>
             </div>
-            {!showAll && active.requests > turns.length && (
+            {!showAll && active.entries.length > turns.length && (
               <button
                 onClick={() => setExpanded(active.id)}
                 className="mt-3 w-full rounded-lg bg-muted/50 py-2 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               >
-                Show all {fmt.int(active.requests)} turns
+                Show all {fmt.int(active.entries.length)} rows
               </button>
             )}
           </Panel>

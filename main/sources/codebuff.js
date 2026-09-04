@@ -1,15 +1,13 @@
 const fs = require("fs");
 const fsp = require("fs/promises");
 const path = require("path");
-const { num, walk, mapLimit, HOME } = require("../normalize");
+const { num, walk, mapLimit, envDirs, HOME } = require("../normalize");
 
 const CHANNELS = ["manicode", "manicode-dev", "manicode-staging"];
 
 function files() {
-  const env = process.env.CODEBUFF_DATA_DIR;
-  const roots = env
-    ? env.split(/[,;:]/).map((s) => s.trim()).filter(Boolean)
-    : CHANNELS.map((c) => path.join(HOME, ".config", c));
+  const env = envDirs("CODEBUFF_DATA_DIR");
+  const roots = env.length ? env : CHANNELS.map((c) => path.join(HOME, ".config", c));
   const out = [];
   for (const root of roots) {
     const projects = path.basename(root) === "projects" ? root : path.join(root, "projects");

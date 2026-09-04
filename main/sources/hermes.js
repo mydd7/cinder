@@ -1,14 +1,14 @@
 const fs = require("fs");
 const path = require("path");
-const { num, HOME } = require("../normalize");
+const { num, HOME, envDirs } = require("../normalize");
 const { queryAll } = require("../sqlite");
 
 const QUERY =
   "SELECT id, model, billing_provider, started_at, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, reasoning_tokens, estimated_cost_usd, actual_cost_usd FROM sessions WHERE model IS NOT NULL AND TRIM(model) != ''";
 
 function dbs() {
-  const env = process.env.HERMES_HOME;
-  const roots = env ? env.split(/[,;:]/).map((s) => s.trim()).filter(Boolean) : [path.join(HOME, ".hermes")];
+  const env = envDirs("HERMES_HOME");
+  const roots = env.length ? env : [path.join(HOME, ".hermes")];
   return [...new Set(roots)].map((r) => path.join(r, "state.db")).filter((p) => fs.existsSync(p));
 }
 

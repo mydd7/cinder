@@ -137,13 +137,13 @@ declare global {
       toggleMaximize: () => Promise<boolean>;
       close: () => Promise<void>;
       isMaximized: () => Promise<boolean>;
-      onWindowState: (cb: (v: boolean) => void) => void;
+      onWindowState: (cb: (v: boolean) => void) => () => void;
       setBackground: (bg: string) => void;
       collect: () => Promise<CollectResult>;
       calls: () => Promise<CallsResult>;
       cancelScan: () => Promise<boolean>;
-      onScanProgress: (cb: (p: ScanProgress) => void) => void;
-      onMenuRescan: (cb: () => void) => void;
+      onScanProgress: (cb: (p: ScanProgress) => void) => () => void;
+      onMenuRescan: (cb: () => void) => () => void;
       snapshotInfo: () => Promise<SnapshotInfo | null>;
       snapshotUsage: () => Promise<CollectResult | null>;
       snapshotCalls: () => Promise<CallsResult | null>;

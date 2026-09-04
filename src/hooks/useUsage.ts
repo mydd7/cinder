@@ -10,7 +10,7 @@ export function useUsage() {
   const [progress, setProgress] = useState<ScanProgress>(NO_PROGRESS);
 
   useEffect(() => {
-    window.cinder?.onScanProgress(setProgress);
+    return window.cinder?.onScanProgress(setProgress);
   }, []);
 
   const reload = useCallback(async () => {

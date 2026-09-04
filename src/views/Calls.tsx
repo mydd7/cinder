@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type MouseEvent } from "react";
 import { fmt } from "@/lib/format";
 import { colorAt } from "@/lib/palette";
 import { provColor, provLabel } from "@/lib/providers";
@@ -99,7 +99,7 @@ function DayBars({ byDay }: { byDay: Record<string, number> }) {
   const max = Math.max(1, ...series.map((s) => s.v));
   const bw = plotW / n;
 
-  function onMove(e: React.MouseEvent) {
+  function onMove(e: MouseEvent) {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const relX = ((e.clientX - rect.left) / (rect.width || W)) * W;
     let i = Math.round((relX - PAD.l) / bw - 0.5);

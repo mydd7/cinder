@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type MouseEvent } from "react";
 import { createPortal } from "react-dom";
 import { THEMES, paletteOf, type Mode } from "@/lib/themes";
 import { Icon } from "./Icon";
@@ -16,7 +16,7 @@ export function ThemeMenu({ themeId, mode, onTheme, onMode }: Props) {
   const [pos, setPos] = useState({ top: 0, right: 0 });
   const active = paletteOf(themeId, mode);
 
-  function toggle(e: React.MouseEvent) {
+  function toggle(e: MouseEvent) {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     setPos({ top: rect.bottom + 8, right: window.innerWidth - rect.right });
     setOpen((v) => !v);
@@ -38,7 +38,7 @@ export function ThemeMenu({ themeId, mode, onTheme, onMode }: Props) {
           <>
             <div className="fixed inset-0 z-[90]" onClick={() => setOpen(false)} />
             <div
-              className="fixed z-[91] w-[236px] rounded-2xl bg-popover p-3 shadow-[0_18px_50px_-12px_rgba(0,0,0,0.55)] ring-1 ring-foreground/10 terax-pill-in"
+              className="fixed z-[91] w-[236px] rounded-2xl bg-popover p-3 shadow-[0_18px_50px_-12px_rgba(0,0,0,0.55)] ring-1 ring-foreground/10 terax-tab-in"
               style={{ top: pos.top, right: pos.right }}
             >
               <div className="mb-2 flex rounded-lg bg-muted p-[3px]">
