@@ -265,8 +265,6 @@ ipcMain.handle("snapshot:calls", () => {
 });
 ipcMain.handle("snapshot:clear", () => clearSnapshot(app.getPath("userData")));
 
-ipcMain.handle("app:open-external", (_e, url) => openExternal(url));
-
 let callsScanning = null;
 ipcMain.handle("usage:calls", () => {
   if (callsScanning) return callsScanning;

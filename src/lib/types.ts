@@ -148,7 +148,6 @@ declare global {
       snapshotUsage: () => Promise<CollectResult | null>;
       snapshotCalls: () => Promise<CallsResult | null>;
       clearSnapshot: () => Promise<void>;
-      openExternal: (url: string) => Promise<void>;
     };
   }
 }

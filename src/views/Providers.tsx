@@ -5,8 +5,6 @@ import { provColor, provLabel } from "@/lib/providers";
 import type { Entry, Summary } from "@/lib/types";
 import { StatCard, Panel, BarRow } from "@/components/Primitives";
 
-const color = provColor;
-
 export function Providers({ full, entries }: { full: Summary; entries: Entry[] }) {
   const t = full.totals;
   const perProvider = useMemo(() => {
@@ -44,7 +42,7 @@ export function Providers({ full, entries }: { full: Summary; entries: Entry[] }
                   name={provLabel(s.name)}
                   value={s.tokens}
                   max={maxTok}
-                  color={color(s.name)}
+                  color={provColor(s.name)}
                   amt={
                     <>
                       <b className="font-semibold text-foreground">{fmt.compact(s.tokens)}</b> · {fmt.pct(s.tokens / (t.tokens || 1))}
@@ -66,7 +64,7 @@ export function Providers({ full, entries }: { full: Summary; entries: Entry[] }
                   name={provLabel(s.name)}
                   value={s.cost}
                   max={maxCost}
-                  color={color(s.name)}
+                  color={provColor(s.name)}
                   amt={
                     <>
                       <b className="font-semibold text-foreground">{fmt.usd(s.cost)}</b> · {fmt.pct(s.cost / (t.cost || 1))}
@@ -116,7 +114,7 @@ export function Providers({ full, entries }: { full: Summary; entries: Entry[] }
                     name={fmt.modelShort(m.name)}
                     value={byReqs ? m.requests : m.tokens}
                     max={maxM}
-                    color={i === 0 ? color(name) : "var(--muted-foreground)"}
+                    color={i === 0 ? provColor(name) : "var(--muted-foreground)"}
                     amt={<b className="font-semibold text-foreground">{byReqs ? fmt.int(m.requests) : fmt.compact(m.tokens)}</b>}
                   />
                 ))}

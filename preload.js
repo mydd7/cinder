@@ -22,6 +22,5 @@ contextBridge.exposeInMainWorld("cinder", {
   snapshotInfo: () => ipcRenderer.invoke("snapshot:info"),
   snapshotUsage: () => ipcRenderer.invoke("snapshot:usage"),
   snapshotCalls: () => ipcRenderer.invoke("snapshot:calls"),
-  clearSnapshot: () => ipcRenderer.invoke("snapshot:clear"),
-  openExternal: (url) => ipcRenderer.invoke("app:open-external", url)
+  clearSnapshot: () => ipcRenderer.invoke("snapshot:clear")
 });

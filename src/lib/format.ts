@@ -36,9 +36,6 @@ export const fmt = {
   monthShort(d: Date): string {
     return d.toLocaleDateString("en-US", { month: "short" });
   },
-  time(d: string | number): string {
-    return new Date(d).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
-  },
   modelShort(m: string): string {
     if (!m) return "unknown";
     if (m === "cursor-auto" || m === "default") return "Auto";

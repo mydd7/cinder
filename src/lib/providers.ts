@@ -40,7 +40,8 @@ const COLOR: Record<string, string> = {
   copilot: "var(--muted-foreground)",
   cursor: "var(--brand-2)",
   antigravity: "var(--data-1)",
-  kilocode: "var(--data-4)"
+  kilocode: "var(--data-4)",
+  openrouter: "var(--data-3)"
 };
 
 export const provLabel = (s: string) => LABEL[s] || s;

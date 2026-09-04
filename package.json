@@ -7,9 +7,15 @@
   "license": "MIT",
   "description": "Local dashboard for AI coding token usage.",
   "homepage": "https://github.com/mydd7/cinder",
+  "bugs": {
+    "url": "https://github.com/mydd7/cinder/issues"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/mydd7/cinder.git"
+  },
+  "engines": {
+    "node": ">=22"
   },
   "main": "main.js",
   "scripts": {

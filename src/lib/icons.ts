@@ -22,25 +22,12 @@ import {
   Refresh01Icon,
   Moon02Icon,
   Sun03Icon,
-  Settings01Icon,
-  Clock01Icon,
-  Time04Icon,
-  StarAward01Icon,
-  Rocket01Icon,
-  Award01Icon,
   GemIcon,
-  Diamond01Icon,
-  Crown02Icon,
-  Infinity02Icon,
   Leaf01Icon,
   Wallet01Icon,
   Compass01Icon,
   Fire02Icon,
-  SunriseIcon,
-  Target01Icon,
   SparklesIcon,
-  PieChart01Icon,
-  Medal01Icon,
   Search01Icon
 } from "@hugeicons/core-free-icons";
 
@@ -63,7 +50,6 @@ export const ICON = {
   avg: EnergyIcon,
   calendar: Calendar03Icon,
   sessions: Layers01Icon,
-  composition: PieChart01Icon,
 
   minimize: MinusSignIcon,
   maximize: SquareIcon,
@@ -72,31 +58,16 @@ export const ICON = {
   refresh: Refresh01Icon,
   moon: Moon02Icon,
   sun: Sun03Icon,
-  settings: Settings01Icon,
-  clock: Clock01Icon,
-  time: Time04Icon,
-  source: Database01Icon,
 
-  b_first: StarAward01Icon,
   b_century: BoltIcon,
-  b_power: Rocket01Icon,
-  b_marathon: Award01Icon,
   b_millionaire: GemIcon,
-  b_tenmillion: Diamond01Icon,
-  b_hundredm: Layers01Icon,
-  b_billion: Crown02Icon,
-  b_infinite: Infinity02Icon,
   b_cache: Leaf01Icon,
   b_spender: Wallet01Icon,
   b_polyglot: CubeIcon,
   b_explorer: Compass01Icon,
   b_consistent: Calendar03Icon,
   b_streak: Fire02Icon,
-  b_nightowl: Moon02Icon,
-  b_earlybird: SunriseIcon,
-  b_target: Target01Icon,
-  b_spark: SparklesIcon,
-  b_medal: Medal01Icon
+  b_spark: SparklesIcon
 } as const;
 
 export type IconKey = keyof typeof ICON;
