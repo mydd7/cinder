@@ -53,7 +53,9 @@ function createWindow() {
     minWidth: 940,
     minHeight: 600,
     show: false,
-    frame: false,
+    ...(process.platform === "darwin"
+      ? { titleBarStyle: "hiddenInset", trafficLightPosition: { x: 12, y: 10 } }
+      : { frame: false }),
     backgroundColor: state.bg,
     icon: ICON,
     title: "Cinder",
@@ -130,6 +132,21 @@ function appMenu() {
         { role: "paste" },
         { role: "selectAll" }
       ]
+    },
+    {
+      label: "View",
+      submenu: [
+        {
+          label: "Rescan",
+          accelerator: "CmdOrCtrl+R",
+          click: () => win && !win.isDestroyed() && win.webContents.send("menu:rescan")
+        },
+        { type: "separator" },
+        { role: "togglefullscreen" }
+      ]
+    },
+    {
+      role: "windowMenu"
     }
   ]);
 }

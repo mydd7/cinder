@@ -132,6 +132,7 @@ export interface Summary {
 declare global {
   interface Window {
     cinder?: {
+      platform: string;
       minimize: () => Promise<void>;
       toggleMaximize: () => Promise<boolean>;
       close: () => Promise<void>;
@@ -142,6 +143,7 @@ declare global {
       calls: () => Promise<CallsResult>;
       cancelScan: () => Promise<boolean>;
       onScanProgress: (cb: (p: ScanProgress) => void) => void;
+      onMenuRescan: (cb: () => void) => void;
       snapshotInfo: () => Promise<SnapshotInfo | null>;
       snapshotUsage: () => Promise<CollectResult | null>;
       snapshotCalls: () => Promise<CallsResult | null>;
