@@ -4,39 +4,52 @@ const zlib = require("zlib");
 
 const OUT = path.join(__dirname, "..", "icon");
 const ICO_SIZES = [16, 24, 32, 48, 64, 128, 256];
+
 const TILE_A = [0xd9, 0x77, 0x57];
 const TILE_B = [0xe8, 0xb8, 0x7a];
-const GLYPH = [0xfb, 0xf9, 0xf3];
+const COAL_L = [0x2a, 0x16, 0x10];
+const COAL_R = [0x3f, 0x22, 0x16];
+const HOT = [0xfb, 0xf9, 0xf3];
 
-const SHARD = [
-  [48, 10],
-  [70, 50],
-  [48, 90],
-  [26, 50]
+const EMBER = [
+  [47, 13],
+  [74, 35],
+  [68, 74],
+  [45, 89],
+  [26, 71],
+  [24, 36]
 ];
-const SPARK = [
-  [79, 21],
-  [87, 29],
-  [79, 37],
-  [71, 29]
+const CORE = [
+  [46.9, 31],
+  [48.5, 53],
+  [46.6, 75],
+  [45.3, 53]
 ];
-const ROUND = 0.17;
-const FIT = { cx: 56.5, cy: 50, scale: 0.84 };
+const SPARK_AT = [79, 22];
 
 const lerp = (a, b, t) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
 
-function place(v, s) {
-  const k = s / 100;
-  return { x: (50 + (v[0] - FIT.cx) * FIT.scale) * k, y: (50 + (v[1] - FIT.cy) * FIT.scale) * k };
+function star(cx, cy, outer, inner, n = 4, rot = -Math.PI / 2) {
+  const v = [];
+  for (let i = 0; i < n * 2; i++) {
+    const r = i % 2 === 0 ? outer : inner;
+    const a = rot + (i * Math.PI) / n;
+    v.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]);
+  }
+  return v;
 }
 
-function corners(verts, s) {
+function place(v, s) {
+  return { x: (v[0] * s) / 100, y: (v[1] * s) / 100 };
+}
+
+function corners(verts, s, round) {
   const pts = verts.map((v) => place(v, s));
   const n = pts.length;
   return pts.map((v, i) => ({
-    in: lerp(v, pts[(i - 1 + n) % n], ROUND),
+    in: lerp(v, pts[(i - 1 + n) % n], round),
     ctrl: v,
-    out: lerp(v, pts[(i + 1) % n], ROUND)
+    out: lerp(v, pts[(i + 1) % n], round)
   }));
 }
 
@@ -44,12 +57,15 @@ function quad(out, p0, c, p1, steps = 12) {
   for (let i = 1; i <= steps; i++) {
     const t = i / steps;
     const u = 1 - t;
-    out.push({ x: u * u * p0.x + 2 * u * t * c.x + t * t * p1.x, y: u * u * p0.y + 2 * u * t * c.y + t * t * p1.y });
+    out.push({
+      x: u * u * p0.x + 2 * u * t * c.x + t * t * p1.x,
+      y: u * u * p0.y + 2 * u * t * c.y + t * t * p1.y
+    });
   }
 }
 
-function poly(verts, s) {
-  const cs = corners(verts, s);
+function poly(verts, s, round) {
+  const cs = corners(verts, s, round);
   const out = [];
   for (const c of cs) {
     out.push(c.in);
@@ -58,8 +74,8 @@ function poly(verts, s) {
   return out;
 }
 
-function svgPath(verts, s) {
-  const cs = corners(verts, s);
+function svgPath(verts, s, round) {
+  const cs = corners(verts, s, round);
   const r = (n) => Math.round(n * 1000) / 1000;
   let d = `M${r(cs[0].in.x)} ${r(cs[0].in.y)}`;
   for (let i = 0; i < cs.length; i++) {
@@ -144,23 +160,46 @@ function rasterize(polys, size, sub = 8) {
 }
 
 function render(size) {
+  const right = [EMBER[0], EMBER[1], EMBER[2], EMBER[3]];
+  const spark = star(SPARK_AT[0], SPARK_AT[1], 9.2, 3.4);
   const tile = rasterize([tilePoly(size, 0.225)], size);
-  const mark = rasterize([poly(SHARD, size), poly(SPARK, size)], size);
-  const rgba = Buffer.alloc(size * size * 4);
   const span = 2 * (size - 1 || 1);
+  const tileRgb = new Float32Array(size * size * 3);
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
-      const i = y * size + x;
-      const at = Math.min(1, Math.max(0, tile[i]));
-      if (at <= 0) continue;
-      const ag = Math.min(1, Math.max(0, mark[i])) * at;
-      const outA = ag + at * (1 - ag);
-      if (outA <= 0) continue;
       const t = (x + y) / span;
+      const i = (y * size + x) * 3;
+      for (let c = 0; c < 3; c++) tileRgb[i + c] = TILE_A[c] + (TILE_B[c] - TILE_A[c]) * t;
+    }
+  }
+  const rgba = Buffer.alloc(size * size * 4);
+  const n = size * size;
+  for (let i = 0; i < n; i++) {
+    const a = Math.min(1, Math.max(0, tile[i]));
+    if (a <= 0) continue;
+    const o = i * 4;
+    rgba[o] = Math.round(tileRgb[i * 3]);
+    rgba[o + 1] = Math.round(tileRgb[i * 3 + 1]);
+    rgba[o + 2] = Math.round(tileRgb[i * 3 + 2]);
+    rgba[o + 3] = Math.round(a * 255);
+  }
+  const overlays = [
+    { cov: rasterize([poly(EMBER, size, 0.13)], size), rgb: COAL_L },
+    { cov: rasterize([poly(right, size, 0.13)], size), rgb: COAL_R },
+    { cov: rasterize([poly(CORE, size, 0.22)], size), rgb: HOT },
+    { cov: rasterize([poly(spark, size, 0.12)], size), rgb: HOT }
+  ];
+  for (const { cov, rgb } of overlays) {
+    for (let i = 0; i < n; i++) {
+      const srcA = Math.min(1, Math.max(0, cov[i]));
+      if (srcA <= 0) continue;
       const o = i * 4;
+      const dstA = rgba[o + 3] / 255;
+      const outA = srcA + dstA * (1 - srcA);
       for (let c = 0; c < 3; c++) {
-        const base = TILE_A[c] + (TILE_B[c] - TILE_A[c]) * t;
-        rgba[o + c] = Math.round(Math.min(255, Math.max(0, (GLYPH[c] * ag + base * at * (1 - ag)) / outA)));
+        const src = rgb[c] * srcA;
+        const dst = rgba[o + c] * dstA;
+        rgba[o + c] = Math.round((src + dst * (1 - srcA)) / outA);
       }
       rgba[o + 3] = Math.round(outA * 255);
     }
@@ -232,10 +271,13 @@ function encodeIco(images) {
   return Buffer.concat([dir, ...images.map((i) => i.png)]);
 }
 
-fs.mkdirSync(OUT, { recursive: true });
+const SPARK = star(SPARK_AT[0], SPARK_AT[1], 9.2, 3.4);
+const emberPath = svgPath(EMBER, 100, 0.13);
+const corePath = svgPath(CORE, 100, 0.22);
+const sparkPath = svgPath(SPARK, 100, 0.12);
+const rightPath = svgPath([EMBER[0], EMBER[1], EMBER[2], EMBER[3]], 100, 0.13);
 
-const shard = svgPath(SHARD, 100);
-const spark = svgPath(SPARK, 100);
+fs.mkdirSync(OUT, { recursive: true });
 
 fs.writeFileSync(
   path.join(OUT, "icon.svg"),
@@ -247,8 +289,10 @@ fs.writeFileSync(
     </linearGradient>
   </defs>
   <rect width="100" height="100" rx="22.5" fill="url(#c)"/>
-  <path d="${shard}" fill="#fbf9f3"/>
-  <path d="${spark}" fill="#fbf9f3"/>
+  <path d="${emberPath}" fill="#2a1610"/>
+  <path d="${rightPath}" fill="#3f2216"/>
+  <path d="${corePath}" fill="#fbf9f3"/>
+  <path d="${sparkPath}" fill="#fbf9f3"/>
 </svg>
 `
 );
@@ -256,8 +300,8 @@ fs.writeFileSync(
 fs.writeFileSync(
   path.join(OUT, "mark.svg"),
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
-  <path d="${shard}" fill="currentColor"/>
-  <path d="${spark}" fill="currentColor"/>
+  <path d="${emberPath}" fill="currentColor"/>
+  <path d="${sparkPath}" fill="currentColor"/>
 </svg>
 `
 );
@@ -268,8 +312,8 @@ fs.writeFileSync(
 );
 fs.writeFileSync(path.join(OUT, "icon.png"), encodePng(512, render(512)));
 
+console.log("ember " + emberPath);
+console.log("spark " + sparkPath);
 console.log("icon/icon.svg   icon/mark.svg");
 console.log("icon/icon.ico   " + ICO_SIZES.join(",") + "px");
 console.log("icon/icon.png   512px");
-console.log("shard " + shard);
-console.log("spark " + spark);

@@ -1,7 +1,7 @@
 {
   "name": "cinder",
   "productName": "Cinder",
-  "version": "2.6.0",
+  "version": "2.6.1",
   "private": true,
   "author": "Cinder",
   "license": "MIT",

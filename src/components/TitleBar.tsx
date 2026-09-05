@@ -22,7 +22,7 @@ export function TitleBar({ themeId, mode, onTheme, onMode }: Props) {
       )}
       onDoubleClick={() => void window.cinder?.toggleMaximize()}
     >
-      <Logo size={16} className="shrink-0 text-brand" />
+      <Logo size={18} className="shrink-0 text-brand" />
       <span className="text-[12.5px] font-semibold tracking-tight">Cinder</span>
 
       <div className="drag h-full flex-1" />
