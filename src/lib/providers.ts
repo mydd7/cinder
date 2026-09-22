@@ -17,6 +17,7 @@ const LABEL: Record<string, string> = {
   copilot: "GitHub Copilot",
   cursor: "Cursor",
   antigravity: "Antigravity",
+  grok: "Grok",
   kilocode: "Kilo Code",
   openrouter: "OpenRouter"
 };
@@ -40,6 +41,7 @@ const COLOR: Record<string, string> = {
   copilot: "var(--muted-foreground)",
   cursor: "var(--brand-2)",
   antigravity: "var(--data-1)",
+  grok: "var(--data-2)",
   kilocode: "var(--data-4)",
   openrouter: "var(--data-3)"
 };

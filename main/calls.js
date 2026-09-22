@@ -4,6 +4,7 @@ const { walk, readJsonl, mapLimit, envDirs, HOME } = require("./normalize");
 const { writeJsonFile } = require("./jsonfile");
 const { queryAll, queryLive } = require("./sqlite");
 const cursorSrc = require("./sources/cursor");
+const grokSrc = require("./sources/grok");
 
 const CLAUDE_KEEP = (line) => line.includes('"tool_use"');
 const CODEX_KEEP = (line) =>
@@ -363,6 +364,18 @@ async function collectCursor(scan) {
   }
 }
 
+async function collectGrok(scan) {
+  const files = grokSrc.updatesFiles();
+  await mapLimit(files, 8, (file) =>
+    scan.file("grok", file, async (out) => {
+      await readJsonl(file, (o) => {
+        const ev = grokSrc.eventFromUpdate(o);
+        if (ev) out.add(ev);
+      }, grokSrc.KEEP);
+    })
+  );
+}
+
 function cursorMcpNames() {
   const p = path.join(HOME, ".cursor", "mcp.json");
   if (!fs.existsSync(p)) return [];
@@ -467,7 +480,8 @@ function installedInfo() {
       claude: [...claudeMcp].sort(),
       codex: [...codexMcp].sort(),
       opencode: opencodeMcpNames().sort(),
-      cursor: cursorMcpNames()
+      cursor: cursorMcpNames(),
+      grok: grokSrc.mcpNames()
     }
   };
 }
@@ -476,7 +490,13 @@ async function collectCalls(cacheDir) {
   const scan = new CallScan();
   scan.loadCache(cacheDir);
   const mcpNames = opencodeMcpNames();
-  await Promise.all([collectClaude(scan), collectCodex(scan), collectOpenCode(scan, mcpNames), collectCursor(scan)]);
+  await Promise.all([
+    collectClaude(scan),
+    collectCodex(scan),
+    collectOpenCode(scan, mcpNames),
+    collectCursor(scan),
+    collectGrok(scan)
+  ]);
   scan.saveCache();
   return { sources: scan.result(), installed: installedInfo(), scannedAt: new Date().toISOString() };
 }

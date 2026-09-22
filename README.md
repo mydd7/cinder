@@ -40,11 +40,11 @@ Electron, React 19, Vite, Tailwind v4, hugeicons. Renderer in `src/`, collectors
 
 ## Sources
 
-Claude, Codex, OpenCode, Kilo, Goose, Hermes, Gemini, Qwen, Droid, Amp, Kimi, Codebuff, OpenClaw, Pi, GitHub Copilot, Cursor, Antigravity. Each reader lives in `main/sources/` and uses its default paths plus an override env var (comma or semicolon separated):
+Claude, Codex, OpenCode, Kilo, Goose, Hermes, Gemini, Qwen, Droid, Amp, Kimi, Codebuff, OpenClaw, Pi, GitHub Copilot, Cursor, Antigravity, Grok. Each reader lives in `main/sources/` and uses its default paths plus an override env var (comma or semicolon separated):
 
-`CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `OPENCODE_DATA_DIR`, `KILO_DATA_DIR`, `GOOSE_PATH_ROOT`, `HERMES_HOME`, `GEMINI_DATA_DIR`, `QWEN_DATA_DIR`, `DROID_SESSIONS_DIR`, `AMP_DATA_DIR`, `KIMI_DATA_DIR`, `CODEBUFF_DATA_DIR`, `OPENCLAW_DIR`, `PI_AGENT_DIR`, `COPILOT_OTEL_FILE_EXPORTER_PATH`, `CURSOR_DATA_DIR`, `CURSOR_TRACKING_DB`, `ANTIGRAVITY_DATA_DIR`.
+`CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `OPENCODE_DATA_DIR`, `KILO_DATA_DIR`, `GOOSE_PATH_ROOT`, `HERMES_HOME`, `GEMINI_DATA_DIR`, `QWEN_DATA_DIR`, `DROID_SESSIONS_DIR`, `AMP_DATA_DIR`, `KIMI_DATA_DIR`, `CODEBUFF_DATA_DIR`, `OPENCLAW_DIR`, `PI_AGENT_DIR`, `COPILOT_OTEL_FILE_EXPORTER_PATH`, `CURSOR_DATA_DIR`, `CURSOR_TRACKING_DB`, `ANTIGRAVITY_DATA_DIR`, `GROK_HOME`.
 
-SQLite sources use `node:sqlite`. Antigravity stores usage as protobuf with no `.proto`, so the reader decodes by field number. Cursor does not persist token counts locally: requests, models, sessions and tool calls only.
+SQLite sources use `node:sqlite`. Antigravity stores usage as protobuf with no `.proto`, so the reader decodes by field number. Cursor does not persist token counts locally: requests, models, sessions and tool calls only. Grok reads per-turn `usage.json` under `~/.grok/sessions` (Windows and macOS).
 
 ## Pricing
 
@@ -54,7 +54,7 @@ Per-model cost from a bundled `pricing-data.json`. Unknown models are zero. No n
 
 ## Calls
 
-Tool, MCP and skill counts from local logs (Claude, Codex, OpenCode, Cursor). Deduped by call id, cached in `calls-cache.json`.
+Tool, MCP and skill counts from local logs (Claude, Codex, OpenCode, Cursor, Grok). Deduped by call id, cached in `calls-cache.json`.
 
 ## Scan
 

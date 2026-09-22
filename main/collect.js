@@ -17,7 +17,8 @@ const SOURCES = [
   require("./sources/pi"),
   require("./sources/copilot"),
   require("./sources/cursor"),
-  require("./sources/antigravity")
+  require("./sources/antigravity"),
+  require("./sources/grok")
 ];
 
 const CATALOG = SOURCES.map((s) => ({ id: s.id, label: s.label }));

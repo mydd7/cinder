@@ -44,6 +44,7 @@ export const fmt = {
       .replace(/-\d{8}$/, "")
       .replace(/^anthropic\//, "")
       .replace(/-high-thinking$/, "")
-      .replace(/-thinking$/, "");
+      .replace(/-thinking$/, "")
+      .replace(/-build$/, "");
   }
 };
